@@ -12,13 +12,15 @@ import java.awt.GridLayout;
 
 
 public class App {
+    private static final int WINDOW_HEIGHT = 700;
+    private static final int WINDOW_WIDTH = 700;
     private static final int BOARD_SIZE = 9;
-    private static final int LINE_WEIGHT = 3;
+    private static final int LINE_WEIGHT = 2;
 
     static void board() {
         JFrame frame = new JFrame("Go Board");
         frame.pack();
-        frame.setSize(500, 500);
+        frame.setSize(WINDOW_WIDTH, WINDOW_HEIGHT);
         JLayeredPane layers = new JLayeredPane();
         layers.setLayout(null);
         frame.setContentPane(layers);

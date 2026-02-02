@@ -9,6 +9,8 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GridLayout;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 
 
 public class App {
@@ -18,6 +20,7 @@ public class App {
     private static final int LINE_WEIGHT = 2;
 
     static void board() {
+        int[][] board = new int[BOARD_SIZE][BOARD_SIZE];
         JFrame frame = new JFrame("Go Board");
         frame.pack();
         frame.setSize(WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -29,10 +32,9 @@ public class App {
 
         int shortSide = (frameSize.height > frameSize.width) ? frameSize.width : frameSize.height;
 
-        int cellSize = (int) Math.round(shortSide * 0.9);
+        int boardSize = (int) Math.round(shortSide * 0.8);
         
         JPanel boardPanel = new JPanel(new GridLayout(1, 1));
-        boardPanel.setBorder(BorderFactory.createEmptyBorder(50, 50, 50, 50));
 
         JPanel displayPanel = new JPanel(new GridLayout(BOARD_SIZE - 1, BOARD_SIZE - 1, LINE_WEIGHT, LINE_WEIGHT));
         displayPanel.setBackground(Color.BLACK);
@@ -53,6 +55,23 @@ public class App {
         JPanel buttonPanel = new JPanel(new GridLayout(BOARD_SIZE, BOARD_SIZE));
         for(int i = 0; i < BOARD_SIZE; i++) {
             for(int j = 0; j < BOARD_SIZE; j++) {
+                JButton button = new JButton();
+                switch (board[j][i]) {
+                    case 0:
+                        
+                        break;
+                    
+                    case 1:
+
+                        break;
+
+                    case -1: 
+
+                        break;
+
+                    default:
+                        break;
+                }
                 buttonPanel.add(new JButton("hi"));
             }
         }
@@ -61,7 +80,20 @@ public class App {
 
         layers.add(interactionPanel, JLayeredPane.PALETTE_LAYER);
 
-        boardPanel.setBounds(0, 0, cellSize, cellSize);
+        frame.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                Dimension frameSize = frame.getContentPane().getSize();
+
+                int shortSide = (frameSize.height > frameSize.width) ? frameSize.width : frameSize.height;
+
+                int boardSize = (int) Math.round(shortSide * 0.8);
+                
+                boardPanel.setBounds(frameSize.width / 2 - boardSize / 2, frameSize.height / 2 - boardSize / 2, boardSize, boardSize);
+            }
+        });
+
+        boardPanel.setBounds(0, 0, boardSize, boardSize);
         interactionPanel.setBounds(0, 0, 10, 10);
         frame.setVisible(true);
     }
@@ -70,3 +102,4 @@ public class App {
         board();
     }
 }
+

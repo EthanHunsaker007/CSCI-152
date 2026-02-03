@@ -10,149 +10,99 @@ import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.HashSet;
 import java.awt.Image;
+
+record Position(int x, int y) {}
 
 class Board {
     private int BOARD_SIZE;    
     private Piece[][] board;
     private Piece[][] nextBoard;
-    private ArrayList<PieceGroup> groups;
+    private HashSet<PieceGroup> groups;
 
     public Board(int boardSize) {
         BOARD_SIZE = boardSize;
         board = new Piece[BOARD_SIZE][BOARD_SIZE];
         nextBoard = new Piece[BOARD_SIZE][BOARD_SIZE];
-        groups = new ArrayList<PieceGroup>();
+        groups = new HashSet<PieceGroup>();
     }
 
     public void placePiece(int x, int y, boolean blackTurn) {
         if (board[y][x] == null) {
             // System.arraycopy(board, 0, nextBoard, 0, BOARD_SIZE);
-            int liberties = calcLiberties(x, y);
-            System.out.println("libs = " + liberties);
-            Piece potentialPiece = new Piece(liberties, blackTurn);
+            Piece potentialPiece = new Piece(new Position(x, y), blackTurn);
+            PieceGroup group = findGroup(potentialPiece);
             board[y][x] = potentialPiece;
-            PieceGroup group = findGroup(x, y, potentialPiece);
 
-            for (PieceGroup g : groups) {
-                if (g == group) return;
-            }
-
-            groups.add(group);
+            if (group != null) groups.add(group);
             System.out.println(groups);
         }
     }
 
-    public int calcLiberties(int x, int y) {
-        int liberties = 0;
+    public HashSet<Position> findLiberties(int x, int y) {
+        HashSet<Position> liberties = new HashSet<>();
 
-        //Is this legal syntax? It's pretty funky
-        if (y+1 < BOARD_SIZE) if (board[y+1][x] == null) liberties++;
-        if (x+1 < BOARD_SIZE) if (board[y][x+1] == null) liberties++;
-        if (y-1 >= 0) if (board[y-1][x] == null) liberties++;
-        if (x-1 >= 0) if (board[y][x-1] == null) liberties++;
+        if (y+1 < BOARD_SIZE && board[y+1][x] == null) liberties.add(new Position(x, y+1));
+        if (x+1 < BOARD_SIZE && board[y][x+1] == null) liberties.add(new Position(x+1, y));
+        if (y-1 >= 0 && board[y-1][x] == null) liberties.add(new Position(x, y-1));
+        if (x-1 >= 0 && board[y][x-1] == null) liberties.add(new Position(x-1, y));
 
         return liberties;
     }
 
-    public PieceGroup findGroup(int x, int y, Piece ungroupedPiece) {
-        Piece piece;
-        PieceGroup returnGroup = null;
-        PieceGroup removalGroup = null;
+    public PieceGroup findGroup(Piece ungroupedPiece) {
+        int x = ungroupedPiece.returnPosition().x();
+        int y = ungroupedPiece.returnPosition().y();
+        HashSet<Position> liberties = findLiberties(x, y);
+        Piece currentPiece;
+        PieceGroup currentGroup = null;
+        boolean grouped = false;
 
-        if (y+1 < BOARD_SIZE) if (board[y+1][x] != null) {
-            piece = board[y+1][x];
-            board[y+1][x] = piece.subtractLiberty();
+        int[][] dirs = {{0,1},{1,0},{0,-1},{-1,0}};
 
-            if (ungroupedPiece.isBlack() == piece.isBlack()) {
+        for (int[] d : dirs) {
+            int nx = x + d[0];
+            int ny = y + d[1];
+
+            if (nx < 0 || ny < 0 || nx >= BOARD_SIZE || ny >= BOARD_SIZE) continue;
+            if (board[ny][nx] == null) continue;
+
+            currentPiece = board[ny][nx];
+
+            if (ungroupedPiece.isBlack() == currentPiece.isBlack()) {
+                PieceGroup removalGroup = null;
                 for (PieceGroup group : groups) {
-                    if (group.isPieceInGroup(piece)) {
-                        removalGroup = group;
-                        returnGroup = group.addPiece(ungroupedPiece);
-                    }
-                }
-                groups.remove(removalGroup);
-            }
-
-        }
-
-        if (x+1 < BOARD_SIZE) if (board[y][x+1] != null) {
-            piece = board[y][x+1];
-            board[y][x+1] = piece.subtractLiberty();
-
-            if (ungroupedPiece.isBlack() == piece.isBlack()) {
-                for (PieceGroup group : groups) {
-                    if (group.isPieceInGroup(piece)) {
-                        removalGroup = group;
-                        if (returnGroup == null) {
-                            returnGroup = group.addPiece(ungroupedPiece);                        
+                    if (group.isPieceInGroup(currentPiece)) {
+                        if (!grouped) {
+                            group.addPiece(ungroupedPiece, liberties);
+                            group.subtractLiberty(ungroupedPiece.returnPosition());
+                            currentGroup = group;
+                            grouped = true;                            
                         } else {
-                            if (group.isPieceInGroup(ungroupedPiece)) {
-                                returnGroup = group.subtractLiberty();
+                            if (group != currentGroup) {
+                                currentGroup.addGroup(group);
+                                removalGroup = group;
                             } else {
-                                returnGroup = returnGroup.addGroup(group);
+                                currentGroup.subtractLiberty(ungroupedPiece.returnPosition());
                             }
                         }
                     }
                 }
-                groups.remove(removalGroup);  
-            } 
-        }
-        
-
-        if (y-1 >= 0) if (board[y-1][x] != null) {
-            piece = board[y-1][x];
-            board[y-1][x] = piece.subtractLiberty();
-
-            if (ungroupedPiece.isBlack() == piece.isBlack()) {
+                if (removalGroup != null) groups.remove(removalGroup);
+            } else {
                 for (PieceGroup group : groups) {
-                    if (group.isPieceInGroup(piece)) {
-                        removalGroup = group;
-                        if (returnGroup == null) {
-                            returnGroup = group.addPiece(ungroupedPiece);                      
-                        } else {
-                            if (group.isPieceInGroup(ungroupedPiece)) {
-                                returnGroup = group.subtractLiberty();
-                            } else {
-                                returnGroup = returnGroup.addGroup(group);
-                            }
-                        }
+                    if (group.isPieceInGroup(currentPiece)) {
+                        group.subtractLiberty(ungroupedPiece.returnPosition());
                     }
-                }  
-                groups.remove(removalGroup); 
+                }                
             }
         }
 
-        if (x-1 >= 0) if (board[y][x-1] != null) {
-            piece = board[y][x-1];
-            board[y][x-1] = piece.subtractLiberty();
-
-            if (ungroupedPiece.isBlack() == piece.isBlack()) {
-                for (PieceGroup group : groups) {
-                    if (group.isPieceInGroup(piece)) {
-                        removalGroup = group;
-                        if (returnGroup == null) {
-                            returnGroup = group.addPiece(ungroupedPiece);                
-                        } else {
-                            if (group.isPieceInGroup(ungroupedPiece)) {
-                                returnGroup = group.subtractLiberty();
-                            } else {
-                                returnGroup = returnGroup.addGroup(group);
-                            }
-                        }
-                    }
-                }   
-                groups.remove(removalGroup);
-            }
+        if (!grouped) {
+            return new PieceGroup(ungroupedPiece, liberties);
         }
-
-        if (returnGroup == null) {
-            returnGroup = new PieceGroup(new ArrayList<Piece>(Arrays.asList(ungroupedPiece)), ungroupedPiece.returnLiberties());
-        }
-
-        return returnGroup;
+        return null;
     }
 
     @Override
@@ -164,7 +114,11 @@ class Board {
                 if (board[i][j] == null) {
                     boardString += "0";
                 } else {
-                    boardString += board[i][j].returnLiberties();
+                    if (board[i][j].isBlack()) {
+                        boardString += "X";                        
+                    } else {
+                        boardString += "O";
+                    }
                 }
             }
             boardString += "\n";
@@ -175,76 +129,71 @@ class Board {
 }
 
 class Piece {
-    private int liberties;
     private boolean black;
+    private Position position;
 
-    public Piece(int libs, boolean isBlack) {
-        liberties = libs;
+    public Piece(Position pos, boolean isBlack) {
+        position = pos;
         black = isBlack;
     }
 
-    public int returnLiberties() {
-        return liberties;
+    public Position returnPosition() {
+        return position;
     }
     public boolean isBlack() {
         return black;
     }
-    
-    public Piece subtractLiberty() {
-        return new Piece(liberties - 1, black);
-    }
-
 }
 
 class PieceGroup {
-    private ArrayList<Piece> pieces;
-    private int liberties;
+    private HashSet<Piece> pieces;
+    private HashSet<Position> liberties;
 
-    public PieceGroup(ArrayList<Piece> piecesList, int libs) {
-        pieces = piecesList;
-        liberties = libs;
+    public PieceGroup(Piece piece, HashSet<Position> libs) {
+        pieces = new HashSet<>();
+        pieces.add(piece);
+        liberties = new HashSet<>();
+        liberties.addAll(libs);
     }
 
     public boolean isPieceInGroup(Piece piece) {
-        for (Piece element : pieces) {
-            if (element == piece) return true;
+        return pieces.contains(piece);
+    }
+
+    public HashSet<Piece> returnPieces() {
+        return new HashSet<Piece>(pieces);
+    }
+
+    public HashSet<Position> returnLiberties() {
+        return new HashSet<Position>(liberties);
+    }
+
+    public void subtractLiberty(Position liberty) {
+        Position toBeRemoved = null;
+        for (Position lib : liberties) {
+            if (lib.x() == liberty.x() && lib.y() == liberty.y()) {
+                toBeRemoved = lib;
+                System.out.println(lib);
+            }
         }
-        return false;
+        if (toBeRemoved != null) liberties.remove(toBeRemoved);
     }
 
-    public ArrayList<Piece> returnPieces() {
-        return pieces;
-    }
-
-    public int returnLiberties() {
-        return liberties;
-    }
-
-    public PieceGroup subtractLiberty() {
-        return new PieceGroup(pieces, liberties - 1);
-    }
-
-    public PieceGroup addPiece(Piece piece) {
+    public void addPiece(Piece piece, HashSet<Position> libs) {
         pieces.add(piece);
-        liberties += piece.returnLiberties() - 1;
-        return new PieceGroup(pieces, liberties);
+        liberties.addAll(libs);
     }
 
-    public PieceGroup addGroup(PieceGroup group) {
-        ArrayList<Piece> newPieces = pieces;
-        newPieces.addAll(group.returnPieces());
-        return new PieceGroup(newPieces, liberties + group.returnLiberties() - 1);
+    public void addGroup(PieceGroup group) {
+        pieces.addAll(group.returnPieces());
+        liberties.addAll(group.returnLiberties());
 
     }
 
     @Override
     public String toString() {
         String printGroups = new String();
-
-        for (Piece piece : pieces) {
-            printGroups += (" " +  piece.returnLiberties());
-        }
-        printGroups += "\n" + liberties + "\n";
+        printGroups += "Piece Group (" + pieces.size() + " Pieces, " + liberties.size() + " Liberties)\n";
         return printGroups;
     }
 }
@@ -333,7 +282,7 @@ public class App {
                                 newBoard.placePiece(x, y, turn);
                             }
                             turn = !turn;
-                            System.out.println(newBoard);
+                            // System.out.println(newBoard);
                         }
                     });                    
                 }
@@ -370,4 +319,3 @@ public class App {
         board();
     }
 }
-

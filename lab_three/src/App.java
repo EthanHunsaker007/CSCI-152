@@ -10,48 +10,123 @@ import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.awt.Image;
 
 record Position(int x, int y) {}
 
-class Board {
+ class Board {
     private int BOARD_SIZE;    
     private Piece[][] board;
-    private Piece[][] nextBoard;
+    // private Piece[][] nextBoard;
     private HashSet<PieceGroup> groups;
+    private HashMap<Position, PieceGroup> groupedPieces;
 
     public Board(int boardSize) {
         BOARD_SIZE = boardSize;
         board = new Piece[BOARD_SIZE][BOARD_SIZE];
-        nextBoard = new Piece[BOARD_SIZE][BOARD_SIZE];
+        // nextBoard = new Piece[BOARD_SIZE][BOARD_SIZE];
         groups = new HashSet<PieceGroup>();
+        groupedPieces = new HashMap<>();
+    }
+
+    public Boolean getPieceColor(Position pos) {
+        Piece piece = board[pos.y()][pos.x()];
+        if (piece == null) {
+            return null;
+        } else {
+            return piece.isBlack();
+        }
+    }
+
+    private void captureGroup(PieceGroup group) {
+        for (Piece p : group.returnPieces()) {
+            Position pos = p.returnPosition();
+            removePiece(pos);
+            Position[] neighbors = findNeighbors(p);
+            for (Position n : neighbors) {
+                if (n == null) break;
+                PieceGroup neigborGroup = groupedPieces.get(n);
+                neigborGroup.addLiberty(pos);
+            }
+        }
+    }
+
+    private void removePiece(Position pos) {
+        board[pos.y()][pos.x()] = null;
     }
 
     public void placePiece(int x, int y, boolean blackTurn) {
-        if (board[y][x] == null) {
-            // System.arraycopy(board, 0, nextBoard, 0, BOARD_SIZE);
+        if (board[y][x] == null) {         
             Piece potentialPiece = new Piece(new Position(x, y), blackTurn);
             PieceGroup group = findGroup(potentialPiece);
             board[y][x] = potentialPiece;
 
-            if (group != null) groups.add(group);
+            if (group != null) {
+                groups.add(group);
+                groupedPieces.put(potentialPiece.returnPosition(), group);
+            }
+
+            HashSet<PieceGroup> capturedGroups = new HashSet<>();
+
+            for (PieceGroup g: groups) {
+                if (g.returnLiberties().size() == 0) {
+                    capturedGroups.add(g);
+                }
+            }
+
+            for (PieceGroup g: capturedGroups) {
+                captureGroup(g);
+                groups.remove(g);
+            }
+
             System.out.println(groups);
         }
     }
 
-    public HashSet<Position> findLiberties(int x, int y) {
-        HashSet<Position> liberties = new HashSet<>();
+    private Position[] findNeighbors(Piece p) {
+        Position[] neighbors = new Position[4];
+        int neighbor = 0;
+        Position pos = p.returnPosition();
 
-        if (y+1 < BOARD_SIZE && board[y+1][x] == null) liberties.add(new Position(x, y+1));
-        if (x+1 < BOARD_SIZE && board[y][x+1] == null) liberties.add(new Position(x+1, y));
-        if (y-1 >= 0 && board[y-1][x] == null) liberties.add(new Position(x, y-1));
-        if (x-1 >= 0 && board[y][x-1] == null) liberties.add(new Position(x-1, y));
+        int[][] dirs = {{0,1},{1,0},{0,-1},{-1,0}};
+        for (int[] dir : dirs) {
+            int nx = pos.x() + dir[0];
+            int ny = pos.y() + dir[1];
 
-        return liberties;
+            if (nx < 0 || ny < 0 || nx >= BOARD_SIZE || ny >= BOARD_SIZE) continue;
+            if (board[ny][nx] == null) continue;
+
+            Position piecePos = new Position(nx, ny);
+            boolean isBlack = groupedPieces.get(piecePos).isBlack();
+
+            if (p.isBlack() != isBlack) {
+                neighbors[neighbor] = piecePos;
+                neighbor++;
+            }
+        }    
+        return neighbors;   
     }
 
-    public PieceGroup findGroup(Piece ungroupedPiece) {
+    private HashSet<Position> findLiberties(int x, int y) {
+        HashSet<Position> libs = new HashSet<>();
+        int[][] dirs = {{0,1},{1,0},{0,-1},{-1,0}};
+
+        for (int[] dir : dirs) {
+            int nx = x + dir[0];
+            int ny = y + dir[1];
+
+            if (nx < 0 || ny < 0 || nx >= BOARD_SIZE || ny >= BOARD_SIZE) continue;
+            if (board[ny][nx] != null) continue;
+
+            libs.add(new Position(nx, ny));
+        }
+
+        return libs;
+    }
+
+    private PieceGroup findGroup(Piece ungroupedPiece) {
         int x = ungroupedPiece.returnPosition().x();
         int y = ungroupedPiece.returnPosition().y();
         HashSet<Position> liberties = findLiberties(x, y);
@@ -61,47 +136,40 @@ class Board {
 
         int[][] dirs = {{0,1},{1,0},{0,-1},{-1,0}};
 
-        for (int[] d : dirs) {
-            int nx = x + d[0];
-            int ny = y + d[1];
+        for (int[] dir : dirs) {
+            int nx = x + dir[0];
+            int ny = y + dir[1];
 
             if (nx < 0 || ny < 0 || nx >= BOARD_SIZE || ny >= BOARD_SIZE) continue;
             if (board[ny][nx] == null) continue;
 
             currentPiece = board[ny][nx];
+            PieceGroup group = groupedPieces.get(currentPiece.returnPosition());
 
             if (ungroupedPiece.isBlack() == currentPiece.isBlack()) {
                 PieceGroup removalGroup = null;
-                for (PieceGroup group : groups) {
-                    if (group.isPieceInGroup(currentPiece)) {
-                        if (!grouped) {
-                            group.addPiece(ungroupedPiece, liberties);
-                            group.subtractLiberty(ungroupedPiece.returnPosition());
-                            currentGroup = group;
-                            grouped = true;                            
-                        } else {
-                            if (group != currentGroup) {
-                                currentGroup.addGroup(group);
-                                removalGroup = group;
-                            } else {
-                                currentGroup.subtractLiberty(ungroupedPiece.returnPosition());
-                            }
-                        }
+
+                if (!grouped) {
+                    group.addPiece(ungroupedPiece, liberties);
+                    group.subtractLiberty(ungroupedPiece.returnPosition());
+                    currentGroup = group;
+                    grouped = true;                            
+                } else {
+                    if (group != currentGroup) {
+                        currentGroup.addGroup(group);
+                        removalGroup = group;
+                    } else {
+                        currentGroup.subtractLiberty(ungroupedPiece.returnPosition());
                     }
                 }
                 if (removalGroup != null) groups.remove(removalGroup);
             } else {
-                for (PieceGroup group : groups) {
-                    if (group.isPieceInGroup(currentPiece)) {
-                        group.subtractLiberty(ungroupedPiece.returnPosition());
-                    }
-                }                
+                group.subtractLiberty(ungroupedPiece.returnPosition());
             }
-        }
+        }                
 
-        if (!grouped) {
-            return new PieceGroup(ungroupedPiece, liberties);
-        }
+        if (!grouped) return new PieceGroup(ungroupedPiece, liberties);
+        groupedPieces.put(ungroupedPiece.returnPosition(), currentGroup);
         return null;
     }
 
@@ -146,10 +214,12 @@ class Piece {
 }
 
 class PieceGroup {
+    private boolean black;
     private HashSet<Piece> pieces;
     private HashSet<Position> liberties;
 
     public PieceGroup(Piece piece, HashSet<Position> libs) {
+        black = piece.isBlack();
         pieces = new HashSet<>();
         pieces.add(piece);
         liberties = new HashSet<>();
@@ -168,6 +238,10 @@ class PieceGroup {
         return new HashSet<Position>(liberties);
     }
 
+    public boolean isBlack() {
+        return black;
+    }
+
     public void subtractLiberty(Position liberty) {
         Position toBeRemoved = null;
         for (Position lib : liberties) {
@@ -179,6 +253,10 @@ class PieceGroup {
         if (toBeRemoved != null) liberties.remove(toBeRemoved);
     }
 
+    public void addLiberty(Position liberty) {
+        liberties.add(liberty);
+    }
+
     public void addPiece(Piece piece, HashSet<Position> libs) {
         pieces.add(piece);
         liberties.addAll(libs);
@@ -187,7 +265,6 @@ class PieceGroup {
     public void addGroup(PieceGroup group) {
         pieces.addAll(group.returnPieces());
         liberties.addAll(group.returnLiberties());
-
     }
 
     @Override
@@ -204,11 +281,11 @@ public class App {
     private static final int BOARD_SIZE = 9;
     private static final Color BOARD_COLOR = new Color(207, 185, 151);
     private static final int LINE_WEIGHT = 2;
+    public static int pieceSize;
+    private static JButton[] buttons = new JButton[BOARD_SIZE * BOARD_SIZE];
     static boolean turn = true;
 
     static void board() {
-        int[][] board = new int[BOARD_SIZE][BOARD_SIZE];
-
         JFrame frame = new JFrame("Go Board");
         frame.pack();
         frame.setSize(WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -223,7 +300,7 @@ public class App {
 
         int boardSize = (int) Math.round(shortSide * 0.8);
         int cellSize = boardSize / (BOARD_SIZE - 1);
-        int pieceSize = cellSize / 2;
+        pieceSize = cellSize / 2;
         int panelSize = boardSize + cellSize;
 
         JPanel displayPanel = new JPanel(new GridLayout(BOARD_SIZE - 1, BOARD_SIZE - 1, LINE_WEIGHT, LINE_WEIGHT));
@@ -244,53 +321,28 @@ public class App {
         buttonPanel.setOpaque(false);
 
 
-
-
-
-        
-
         Board newBoard = new Board(9);
 
-        try {
-            Image blackPieceImg = ImageIO.read(App.class.getResource("circleBlack.png")).getScaledInstance(pieceSize, pieceSize, Image.SCALE_DEFAULT);
-            Image whitePieceImg = ImageIO.read(App.class.getResource("circleWhite.png")).getScaledInstance(pieceSize, pieceSize, Image.SCALE_DEFAULT);
+        for(int i = 0; i < BOARD_SIZE; i++) {
+            for(int j = 0; j < BOARD_SIZE; j++) {
+                JButton button = new JButton();
+                button.setBorderPainted(false);
+                button.setContentAreaFilled(false);
+                button.setFocusPainted(false);
+                button.setOpaque(false); 
+                buttonPanel.add(button); 
 
-            ImageIcon blackPiece = new ImageIcon(blackPieceImg);
-            ImageIcon whitePiece = new ImageIcon(whitePieceImg);
+                final int y = i;
+                final int x = j;
 
-            for(int i = 0; i < BOARD_SIZE; i++) {
-                for(int j = 0; j < BOARD_SIZE; j++) {
-                    JButton button = new JButton();
-                    button.setBorderPainted(false);
-                    button.setContentAreaFilled(false);
-                    button.setFocusPainted(false);
-                    button.setOpaque(false); 
-                    buttonPanel.add(button); 
-
-                    final int y = i;
-                    final int x = j;
-
-                    button.addActionListener(e -> {
-                        if (board[y][x] == 0) {
-                            if (turn) {
-                                button.setIcon(blackPiece);
-                                board[y][x] = 1;
-                                newBoard.placePiece(x, y, turn);
-                            } else {
-                                button.setIcon(whitePiece);
-                                board[y][x] = 2;
-                                newBoard.placePiece(x, y, turn);
-                            }
-                            turn = !turn;
-                            // System.out.println(newBoard);
-                        }
-                    });                    
-                }
+                button.addActionListener(e -> {
+                    newBoard.placePiece(x, y, turn);
+                    turn = !turn;
+                    updateButtons(newBoard, buttons);
+                }); 
+                buttons[i * BOARD_SIZE + j] = button;                   
             }
-        } catch (Exception ex) {
-            System.out.println(ex);
         }
-
 
         layers.add(buttonPanel, JLayeredPane.PALETTE_LAYER);
 
@@ -303,16 +355,47 @@ public class App {
 
                 int boardSize = (int) Math.round(shortSide * 0.8);
                 int cellSize = boardSize / (BOARD_SIZE - 1);
+                pieceSize = cellSize / 2;
                 int panelSize = boardSize + cellSize;
                 
                 displayPanel.setBounds(frameSize.width / 2 - boardSize / 2, frameSize.height / 2 - boardSize / 2, boardSize, boardSize);
                 buttonPanel.setBounds(frameSize.width / 2 - panelSize / 2, frameSize.height / 2 - panelSize / 2, panelSize, panelSize);
+                updateButtons(newBoard, buttons);
             }
         });
 
         displayPanel.setBounds(frameSize.width / 2 - boardSize / 2, frameSize.height / 2 - boardSize / 2, boardSize, boardSize);
         buttonPanel.setBounds(frameSize.width / 2 - panelSize / 2, frameSize.height / 2 - panelSize / 2, panelSize, panelSize);
         frame.setVisible(true);
+    }
+
+    private static void updateButtons(Board board, JButton[] buttons) {  
+        try {
+            Image blackPieceImg = ImageIO.read(App.class.getResource("circleBlack.png")).getScaledInstance(pieceSize, pieceSize, Image.SCALE_DEFAULT);
+            Image whitePieceImg = ImageIO.read(App.class.getResource("circleWhite.png")).getScaledInstance(pieceSize, pieceSize, Image.SCALE_DEFAULT);
+
+            ImageIcon blackPiece = new ImageIcon(blackPieceImg);
+            ImageIcon whitePiece = new ImageIcon(whitePieceImg);
+
+            for(int i = 0; i < BOARD_SIZE; i++) {
+                for(int j = 0; j < BOARD_SIZE; j++) {
+                    Boolean color = board.getPieceColor(new Position(j, i));
+
+                    ImageIcon setIcon;
+                    if (color == null) {
+                        setIcon = null;
+                    } else if (color == true) {
+                        setIcon = blackPiece;
+                    } else {
+                        setIcon = whitePiece;
+                    }
+                    buttons[i * BOARD_SIZE + j].setIcon(setIcon);
+                }
+            }
+
+        } catch (Exception ex) {
+            System.out.println(ex);
+        }
     }
 
     public static void main(String[] args) throws Exception {

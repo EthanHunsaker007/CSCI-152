@@ -10,8 +10,244 @@ import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.awt.Image;
 
+class Board {
+    private int BOARD_SIZE;    
+    private Piece[][] board;
+    private Piece[][] nextBoard;
+    private ArrayList<PieceGroup> groups;
+
+    public Board(int boardSize) {
+        BOARD_SIZE = boardSize;
+        board = new Piece[BOARD_SIZE][BOARD_SIZE];
+        nextBoard = new Piece[BOARD_SIZE][BOARD_SIZE];
+        groups = new ArrayList<PieceGroup>();
+    }
+
+    public void placePiece(int x, int y, boolean blackTurn) {
+        if (board[y][x] == null) {
+            // System.arraycopy(board, 0, nextBoard, 0, BOARD_SIZE);
+            int liberties = calcLiberties(x, y);
+            System.out.println("libs = " + liberties);
+            Piece potentialPiece = new Piece(liberties, blackTurn);
+            board[y][x] = potentialPiece;
+            PieceGroup group = findGroup(x, y, potentialPiece);
+
+            for (PieceGroup g : groups) {
+                if (g == group) return;
+            }
+
+            groups.add(group);
+            System.out.println(groups);
+        }
+    }
+
+    public int calcLiberties(int x, int y) {
+        int liberties = 0;
+
+        //Is this legal syntax? It's pretty funky
+        if (y+1 < BOARD_SIZE) if (board[y+1][x] == null) liberties++;
+        if (x+1 < BOARD_SIZE) if (board[y][x+1] == null) liberties++;
+        if (y-1 >= 0) if (board[y-1][x] == null) liberties++;
+        if (x-1 >= 0) if (board[y][x-1] == null) liberties++;
+
+        return liberties;
+    }
+
+    public PieceGroup findGroup(int x, int y, Piece ungroupedPiece) {
+        Piece piece;
+        PieceGroup returnGroup = null;
+        PieceGroup removalGroup = null;
+
+        if (y+1 < BOARD_SIZE) if (board[y+1][x] != null) {
+            piece = board[y+1][x];
+            board[y+1][x] = piece.subtractLiberty();
+
+            if (ungroupedPiece.isBlack() == piece.isBlack()) {
+                for (PieceGroup group : groups) {
+                    if (group.isPieceInGroup(piece)) {
+                        removalGroup = group;
+                        returnGroup = group.addPiece(ungroupedPiece);
+                    }
+                }
+                groups.remove(removalGroup);
+            }
+
+        }
+
+        if (x+1 < BOARD_SIZE) if (board[y][x+1] != null) {
+            piece = board[y][x+1];
+            board[y][x+1] = piece.subtractLiberty();
+
+            if (ungroupedPiece.isBlack() == piece.isBlack()) {
+                for (PieceGroup group : groups) {
+                    if (group.isPieceInGroup(piece)) {
+                        removalGroup = group;
+                        if (returnGroup == null) {
+                            returnGroup = group.addPiece(ungroupedPiece);                        
+                        } else {
+                            if (group.isPieceInGroup(ungroupedPiece)) {
+                                returnGroup = group.subtractLiberty();
+                            } else {
+                                returnGroup = returnGroup.addGroup(group);
+                            }
+                        }
+                    }
+                }
+                groups.remove(removalGroup);  
+            } 
+        }
+        
+
+        if (y-1 >= 0) if (board[y-1][x] != null) {
+            piece = board[y-1][x];
+            board[y-1][x] = piece.subtractLiberty();
+
+            if (ungroupedPiece.isBlack() == piece.isBlack()) {
+                for (PieceGroup group : groups) {
+                    if (group.isPieceInGroup(piece)) {
+                        removalGroup = group;
+                        if (returnGroup == null) {
+                            returnGroup = group.addPiece(ungroupedPiece);                      
+                        } else {
+                            if (group.isPieceInGroup(ungroupedPiece)) {
+                                returnGroup = group.subtractLiberty();
+                            } else {
+                                returnGroup = returnGroup.addGroup(group);
+                            }
+                        }
+                    }
+                }  
+                groups.remove(removalGroup); 
+            }
+        }
+
+        if (x-1 >= 0) if (board[y][x-1] != null) {
+            piece = board[y][x-1];
+            board[y][x-1] = piece.subtractLiberty();
+
+            if (ungroupedPiece.isBlack() == piece.isBlack()) {
+                for (PieceGroup group : groups) {
+                    if (group.isPieceInGroup(piece)) {
+                        removalGroup = group;
+                        if (returnGroup == null) {
+                            returnGroup = group.addPiece(ungroupedPiece);                
+                        } else {
+                            if (group.isPieceInGroup(ungroupedPiece)) {
+                                returnGroup = group.subtractLiberty();
+                            } else {
+                                returnGroup = returnGroup.addGroup(group);
+                            }
+                        }
+                    }
+                }   
+                groups.remove(removalGroup);
+            }
+        }
+
+        if (returnGroup == null) {
+            returnGroup = new PieceGroup(new ArrayList<Piece>(Arrays.asList(ungroupedPiece)), ungroupedPiece.returnLiberties());
+        }
+
+        return returnGroup;
+    }
+
+    @Override
+    public String toString() {
+        String boardString = new String();
+
+        for(int i = 0; i < BOARD_SIZE; i++) {
+            for(int j = 0; j < BOARD_SIZE; j++) {
+                if (board[i][j] == null) {
+                    boardString += "0";
+                } else {
+                    boardString += board[i][j].returnLiberties();
+                }
+            }
+            boardString += "\n";
+        }
+
+        return boardString;
+    }
+}
+
+class Piece {
+    private int liberties;
+    private boolean black;
+
+    public Piece(int libs, boolean isBlack) {
+        liberties = libs;
+        black = isBlack;
+    }
+
+    public int returnLiberties() {
+        return liberties;
+    }
+    public boolean isBlack() {
+        return black;
+    }
+    
+    public Piece subtractLiberty() {
+        return new Piece(liberties - 1, black);
+    }
+
+}
+
+class PieceGroup {
+    private ArrayList<Piece> pieces;
+    private int liberties;
+
+    public PieceGroup(ArrayList<Piece> piecesList, int libs) {
+        pieces = piecesList;
+        liberties = libs;
+    }
+
+    public boolean isPieceInGroup(Piece piece) {
+        for (Piece element : pieces) {
+            if (element == piece) return true;
+        }
+        return false;
+    }
+
+    public ArrayList<Piece> returnPieces() {
+        return pieces;
+    }
+
+    public int returnLiberties() {
+        return liberties;
+    }
+
+    public PieceGroup subtractLiberty() {
+        return new PieceGroup(pieces, liberties - 1);
+    }
+
+    public PieceGroup addPiece(Piece piece) {
+        pieces.add(piece);
+        liberties += piece.returnLiberties() - 1;
+        return new PieceGroup(pieces, liberties);
+    }
+
+    public PieceGroup addGroup(PieceGroup group) {
+        ArrayList<Piece> newPieces = pieces;
+        newPieces.addAll(group.returnPieces());
+        return new PieceGroup(newPieces, liberties + group.returnLiberties() - 1);
+
+    }
+
+    @Override
+    public String toString() {
+        String printGroups = new String();
+
+        for (Piece piece : pieces) {
+            printGroups += (" " +  piece.returnLiberties());
+        }
+        printGroups += "\n" + liberties + "\n";
+        return printGroups;
+    }
+}
 
 public class App {
     private static final int WINDOW_HEIGHT = 700;
@@ -58,6 +294,14 @@ public class App {
         JPanel buttonPanel = new JPanel(new GridLayout(BOARD_SIZE, BOARD_SIZE));
         buttonPanel.setOpaque(false);
 
+
+
+
+
+        
+
+        Board newBoard = new Board(9);
+
         try {
             Image blackPieceImg = ImageIO.read(App.class.getResource("circleBlack.png")).getScaledInstance(pieceSize, pieceSize, Image.SCALE_DEFAULT);
             Image whitePieceImg = ImageIO.read(App.class.getResource("circleWhite.png")).getScaledInstance(pieceSize, pieceSize, Image.SCALE_DEFAULT);
@@ -82,17 +326,14 @@ public class App {
                             if (turn) {
                                 button.setIcon(blackPiece);
                                 board[y][x] = 1;
+                                newBoard.placePiece(x, y, turn);
                             } else {
                                 button.setIcon(whitePiece);
                                 board[y][x] = 2;
+                                newBoard.placePiece(x, y, turn);
                             }
                             turn = !turn;
-                        }
-                        for (int[] row : board) {
-                            for (int element : row) {
-                                System.out.print(element);
-                            }
-                            System.out.println();
+                            System.out.println(newBoard);
                         }
                     });                    
                 }

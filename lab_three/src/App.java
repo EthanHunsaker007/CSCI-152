@@ -15,28 +15,31 @@ import java.util.HashSet;
 import java.awt.Image;
 
 record Position(int x, int y) {}
+enum Stone { BLACK, WHITE, EMPTY }
 
- class Board {
+class Board {
     private int BOARD_SIZE;    
     private Piece[][] board;
-    // private Piece[][] nextBoard;
     private HashSet<PieceGroup> groups;
+    private HashSet<Position> modifiedPieces;
     private HashMap<Position, PieceGroup> groupedPieces;
 
     public Board(int boardSize) {
         BOARD_SIZE = boardSize;
         board = new Piece[BOARD_SIZE][BOARD_SIZE];
-        // nextBoard = new Piece[BOARD_SIZE][BOARD_SIZE];
         groups = new HashSet<PieceGroup>();
+        modifiedPieces = new HashSet<>();
         groupedPieces = new HashMap<>();
     }
 
-    public Boolean getPieceColor(Position pos) {
+    public Stone getPieceColor(Position pos) {
         Piece piece = board[pos.y()][pos.x()];
         if (piece == null) {
-            return null;
+            return Stone.EMPTY;
+        } else if (piece.isBlack()) {
+            return Stone.BLACK;
         } else {
-            return piece.isBlack();
+            return Stone.WHITE;
         }
     }
 
@@ -53,17 +56,25 @@ record Position(int x, int y) {}
         }
     }
 
-    private void removePiece(Position pos) {
-        board[pos.y()][pos.x()] = null;
+    public HashSet<Position> drainModifiedPieces() {
+        HashSet<Position> drain = new HashSet<>(modifiedPieces);
+        modifiedPieces.clear();
+        return drain;
     }
 
-    public void placePiece(int x, int y, boolean blackTurn) {
+    private void removePiece(Position pos) {
+        board[pos.y()][pos.x()] = null;
+        modifiedPieces.add(pos);
+    }
+
+    public boolean placePiece(int x, int y, boolean blackTurn) {
         if (board[y][x] == null) {         
             Piece potentialPiece = new Piece(new Position(x, y), blackTurn);
             PieceGroup group = findGroup(potentialPiece);
             board[y][x] = potentialPiece;
+            modifiedPieces.add(potentialPiece.returnPosition());
 
-            if (group != null) {
+            if (group.returnPieces().size() == 1) {
                 groups.add(group);
                 groupedPieces.put(potentialPiece.returnPosition(), group);
             }
@@ -71,7 +82,7 @@ record Position(int x, int y) {}
             HashSet<PieceGroup> capturedGroups = new HashSet<>();
 
             for (PieceGroup g: groups) {
-                if (g.returnLiberties().size() == 0) {
+                if (g.returnLiberties().size() == 0 && g != group) {
                     capturedGroups.add(g);
                 }
             }
@@ -81,9 +92,17 @@ record Position(int x, int y) {}
                 groups.remove(g);
             }
 
+            if (group.returnLiberties().size() == 0) {
+                captureGroup(group);
+                groups.remove(group);
+            }
+
             System.out.println(groups);
+            return true;
+        } else {
+            return false;
         }
-    }
+    } 
 
     private Position[] findNeighbors(Piece p) {
         Position[] neighbors = new Position[4];
@@ -170,7 +189,7 @@ record Position(int x, int y) {}
 
         if (!grouped) return new PieceGroup(ungroupedPiece, liberties);
         groupedPieces.put(ungroupedPiece.returnPosition(), currentGroup);
-        return null;
+        return currentGroup;
     }
 
     @Override
@@ -231,11 +250,11 @@ class PieceGroup {
     }
 
     public HashSet<Piece> returnPieces() {
-        return new HashSet<Piece>(pieces);
+        return pieces;
     }
 
     public HashSet<Position> returnLiberties() {
-        return new HashSet<Position>(liberties);
+        return liberties;
     }
 
     public boolean isBlack() {
@@ -243,14 +262,7 @@ class PieceGroup {
     }
 
     public void subtractLiberty(Position liberty) {
-        Position toBeRemoved = null;
-        for (Position lib : liberties) {
-            if (lib.x() == liberty.x() && lib.y() == liberty.y()) {
-                toBeRemoved = lib;
-                System.out.println(lib);
-            }
-        }
-        if (toBeRemoved != null) liberties.remove(toBeRemoved);
+        liberties.remove(liberty);
     }
 
     public void addLiberty(Position liberty) {
@@ -284,6 +296,7 @@ public class App {
     public static int pieceSize;
     private static JButton[] buttons = new JButton[BOARD_SIZE * BOARD_SIZE];
     static boolean turn = true;
+    private static HashSet<Position> modifiedPositions = new HashSet<>();
 
     static void board() {
         JFrame frame = new JFrame("Go Board");
@@ -336,8 +349,9 @@ public class App {
                 final int x = j;
 
                 button.addActionListener(e -> {
-                    newBoard.placePiece(x, y, turn);
-                    turn = !turn;
+                    modifiedPositions.clear();
+                    turn = newBoard.placePiece(x, y, turn) ? !turn : turn;
+                    modifiedPositions = newBoard.drainModifiedPieces();
                     updateButtons(newBoard, buttons);
                 }); 
                 buttons[i * BOARD_SIZE + j] = button;                   
@@ -379,15 +393,26 @@ public class App {
 
             for(int i = 0; i < BOARD_SIZE; i++) {
                 for(int j = 0; j < BOARD_SIZE; j++) {
-                    Boolean color = board.getPieceColor(new Position(j, i));
+                    Stone color = board.getPieceColor(new Position(j, i));
 
                     ImageIcon setIcon;
-                    if (color == null) {
-                        setIcon = null;
-                    } else if (color == true) {
-                        setIcon = blackPiece;
-                    } else {
-                        setIcon = whitePiece;
+
+                    switch (color) {
+                        case EMPTY:
+                            setIcon = null;
+                            break;
+                        
+                        case BLACK:
+                            setIcon = blackPiece;
+                            break;
+
+                        case WHITE:
+                            setIcon = whitePiece;
+                            break;
+
+                        default:
+                            setIcon = null;
+                            break;
                     }
                     buttons[i * BOARD_SIZE + j].setIcon(setIcon);
                 }

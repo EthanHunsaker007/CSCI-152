@@ -177,9 +177,8 @@ class Board {
                     if (group != currentGroup) {
                         currentGroup.addGroup(group);
                         removalGroup = group;
-                    } else {
-                        currentGroup.subtractLiberty(ungroupedPiece.returnPosition());
                     }
+                    currentGroup.subtractLiberty(ungroupedPiece.returnPosition());
                 }
                 if (removalGroup != null) groups.remove(removalGroup);
             } else {
@@ -282,7 +281,11 @@ class PieceGroup {
     @Override
     public String toString() {
         String printGroups = new String();
-        printGroups += "Piece Group (" + pieces.size() + " Pieces, " + liberties.size() + " Liberties)\n";
+        printGroups += "Piece Group (" + pieces.size() + " Pieces, " + liberties.size() + " Liberties, " + (black ? "Black" : "White") + ")\n";
+        printGroups += "Liberties:\n";
+        for (Position l : liberties) {
+            printGroups += l + "\n";
+        }
         return printGroups;
     }
 }
@@ -290,7 +293,7 @@ class PieceGroup {
 public class App {
     private static final int WINDOW_HEIGHT = 700;
     private static final int WINDOW_WIDTH = 700;
-    private static final int BOARD_SIZE = 9;
+    private static final int BOARD_SIZE = 13;
     private static final Color BOARD_COLOR = new Color(207, 185, 151);
     private static final int LINE_WEIGHT = 2;
     public static int pieceSize;
@@ -334,7 +337,7 @@ public class App {
         buttonPanel.setOpaque(false);
 
 
-        Board newBoard = new Board(9);
+        Board newBoard = new Board(BOARD_SIZE);
 
         for(int i = 0; i < BOARD_SIZE; i++) {
             for(int j = 0; j < BOARD_SIZE; j++) {

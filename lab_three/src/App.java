@@ -23,6 +23,7 @@ class Board {
     private HashSet<PieceGroup> groups;
     private HashSet<Position> modifiedPieces;
     private HashMap<Position, PieceGroup> groupedPieces;
+    private final int[][] dirs = {{0,1},{1,0},{0,-1},{-1,0}};
 
     public Board(int boardSize) {
         BOARD_SIZE = boardSize;
@@ -74,11 +75,6 @@ class Board {
             board[y][x] = potentialPiece;
             modifiedPieces.add(potentialPiece.returnPosition());
 
-            if (group.returnPieces().size() == 1) {
-                groups.add(group);
-                groupedPieces.put(potentialPiece.returnPosition(), group);
-            }
-
             HashSet<PieceGroup> capturedGroups = new HashSet<>();
 
             for (PieceGroup g: groups) {
@@ -109,7 +105,6 @@ class Board {
         int neighbor = 0;
         Position pos = p.returnPosition();
 
-        int[][] dirs = {{0,1},{1,0},{0,-1},{-1,0}};
         for (int[] dir : dirs) {
             int nx = pos.x() + dir[0];
             int ny = pos.y() + dir[1];
@@ -130,7 +125,6 @@ class Board {
 
     private HashSet<Position> findLiberties(int x, int y) {
         HashSet<Position> libs = new HashSet<>();
-        int[][] dirs = {{0,1},{1,0},{0,-1},{-1,0}};
 
         for (int[] dir : dirs) {
             int nx = x + dir[0];
@@ -146,18 +140,15 @@ class Board {
     }
 
     private PieceGroup findGroup(Piece ungroupedPiece) {
-        int x = ungroupedPiece.returnPosition().x();
-        int y = ungroupedPiece.returnPosition().y();
-        HashSet<Position> liberties = findLiberties(x, y);
+        Position pos = ungroupedPiece.returnPosition();
+        HashSet<Position> liberties = findLiberties(pos.x(), pos.y());
         Piece currentPiece;
         PieceGroup currentGroup = null;
         boolean grouped = false;
 
-        int[][] dirs = {{0,1},{1,0},{0,-1},{-1,0}};
-
         for (int[] dir : dirs) {
-            int nx = x + dir[0];
-            int ny = y + dir[1];
+            int nx = pos.x() + dir[0];
+            int ny = pos.y() + dir[1];
 
             if (nx < 0 || ny < 0 || nx >= BOARD_SIZE || ny >= BOARD_SIZE) continue;
             if (board[ny][nx] == null) continue;
@@ -186,7 +177,12 @@ class Board {
             }
         }                
 
-        if (!grouped) return new PieceGroup(ungroupedPiece, liberties);
+        if (!grouped) {
+            PieceGroup returnGroup = new PieceGroup(ungroupedPiece, liberties);
+            groups.add(returnGroup);
+            groupedPieces.put(ungroupedPiece.returnPosition(), returnGroup);
+            return returnGroup;
+        }
         groupedPieces.put(ungroupedPiece.returnPosition(), currentGroup);
         return currentGroup;
     }

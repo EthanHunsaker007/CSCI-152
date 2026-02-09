@@ -29,6 +29,7 @@ public class Board {
 
             PieceGroup newPieceGroup = groupPiece(newPiece, neighbors);
 
+            board[y][x] = newPiece;
             captureCheck(newPieceGroup, neighbors);
 
             return true;
@@ -100,6 +101,7 @@ public class Board {
                 if (n.black() != p.black()) {
                     groupMap.get(n).addLiberty(p.position());
                     board[p.position().y()][p.position().x()] = null;
+                    groupMap.remove(n);
                 }
             }
         }

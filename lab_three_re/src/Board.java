@@ -63,6 +63,9 @@ public class Board {
                     groupMap.put(piece, grouped);
                 } else if(grouped != neighborGroup) {
                     grouped.addGroup(neighborGroup);
+                    for (Piece p2 : neighborGroup.pieces()) {
+                        
+                    }
                     grouped.subtractLiberty(piece.position());
                     groups.remove(neighborGroup);                        
                 }

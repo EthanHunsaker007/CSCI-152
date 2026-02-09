@@ -118,7 +118,7 @@ public class App {
 
             for(int i = 0; i < BOARD_SIZE; i++) {
                 for(int j = 0; j < BOARD_SIZE; j++) {
-                    Stone color = board.getPieceColor(new Position(j, i));
+                    Stone color = board.getPieceColor(j, i);
 
                     ImageIcon setIcon;
 

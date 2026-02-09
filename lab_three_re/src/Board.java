@@ -1,11 +1,8 @@
-
 import java.util.HashMap;
 import java.util.HashSet;
 
 record Position (int x, int y) {}
 record Piece(boolean black, Position position) {}
-
-enum Stone { BLACK, WHITE, EMPTY }
 
 public class Board {
     private final int BOARD_SIZE;
@@ -34,12 +31,12 @@ public class Board {
 
             return true;
         }
-
+        System.out.println(groupMap.get(board[y][x]));
         return false;
     }
 
-    public Stone getPieceColor(Position pos) {
-        Piece piece = board[pos.y()][pos.x()];
+    public Stone getPieceColor(int x, int y) {
+        Piece piece = board[y][x];
         if (piece == null) {
             return Stone.EMPTY;
         } else if (piece.black()) {
@@ -53,18 +50,19 @@ public class Board {
         HashSet<Position> liberties = pieceLiberties(piece); 
 
         PieceGroup grouped = null;
-        for (Piece p : neighbors) {
-            PieceGroup neighborGroup = groupMap.get(p);
+        for (Piece n : neighbors) {
+            PieceGroup neighborGroup = groupMap.get(n);
             
-            if (p.black() == piece.black()) {
+            if (n.black() == piece.black()) {
                 if (grouped == null) {
                     neighborGroup.addPiece(piece, liberties);
                     grouped = neighborGroup;
                     groupMap.put(piece, grouped);
                 } else if(grouped != neighborGroup) {
                     grouped.addGroup(neighborGroup);
-                    for (Piece p2 : neighborGroup.pieces()) {
-                        
+                    for (Piece p : neighborGroup.pieces()) {
+                        groupMap.remove(p, neighborGroup);
+                        groupMap.put(p, grouped);
                     }
                     grouped.subtractLiberty(piece.position());
                     groups.remove(neighborGroup);                        
@@ -84,13 +82,10 @@ public class Board {
     }
     
     private void captureCheck(PieceGroup capturingGroup, HashSet<Piece> neighbors) {
-        for (Piece p : neighbors) {
-            if (p.black() != capturingGroup.black()) {
-                PieceGroup neighborGroup = groupMap.get(p);
-                
-                if (neighborGroup.liberties().isEmpty()) {
-                    clearGroup(neighborGroup);
-                }
+        for (Piece n : neighbors) {
+            PieceGroup neighborGroup = groupMap.get(n);
+            if (capturingGroup != neighborGroup && neighborGroup != null && neighborGroup.liberties().isEmpty()) {
+                clearGroup(neighborGroup);
             }
         }
         if (capturingGroup.liberties().isEmpty()) {
@@ -103,11 +98,12 @@ public class Board {
             for (Piece n: pieceNeighbors(p)) {
                 if (n.black() != p.black()) {
                     groupMap.get(n).addLiberty(p.position());
-                    board[p.position().y()][p.position().x()] = null;
-                    groupMap.remove(n);
                 }
             }
+            groupMap.remove(p);
+            board[p.position().y()][p.position().x()] = null;
         }
+        groups.remove(group);
     }
 
     private HashSet<Position> pieceLiberties(Piece piece) {

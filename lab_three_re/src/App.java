@@ -1,3 +1,9 @@
+/*
+ * Author: Ethan Hunsaker
+ * Date: 02/11/2026
+ * Title: CSCI-152 Lab Three: Go
+ */
+
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GridLayout;

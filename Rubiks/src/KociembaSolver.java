@@ -26,8 +26,7 @@ public class KociembaSolver {
     }
     
     private static final int[] phase2Moves = new int[]{0, 1, 6, 7, 8, 9, 10, 11, 12, 13};
-    private static final int[] solveMoves = new int[30];
-    private static int solveLength = 0;
+    private static final Queue<int[]> p1Solves = new ArrayDeque<>();
 
     private static boolean tablesGenerated = false;
 
@@ -75,7 +74,8 @@ public class KociembaSolver {
             int coordOne = temp[0] / width;
             int coordTwo = temp[0] % width;
 
-            int[] moves = isPhaseTwo ? phase2Moves : new int[]{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17};
+            int[] moves = isPhaseTwo ? phase2Moves : 
+            new int[]{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17};
 
             for (int i : moves) {
                 int nextCoordOne = moveTableOne[coordOne * 18 + i]; 
@@ -97,46 +97,57 @@ public class KociembaSolver {
     }
 
     public static int[] solveCube(CubieCube cube) {
-        solveLength = 0;
-        Arrays.fill(solveMoves, 0);
+        p1Solves.clear();
         
         int[] state = new int[]{cube.getCornerOriCoord(), cube.getEdgeOriCoord(), cube.getUDSliceCoord()};
         byte bound = (byte)Math.max(cornerOriUDSlicePruneTable[state[0] * 495 + state[2]], edgeOriUDSlicePruneTable[state[1] * 495 + state[2]]);       
 
-        while (true) { 
-            int result = P1ida(state, 0, bound, -1);
-            if (result == 0) break;
-            bound = (byte)result;
-        }
+        int recursionLimit = 12;
 
-        CubieCube p2Cube = CubieCube.copyCube(cube);
-
-        for (int i = 0; i < solveLength; i++) {
-            p2Cube.move(solveMoves[i]);
-        } 
-
-        int[] p2State = new int[]{p2Cube.getCornerPermCoord(), p2Cube.getP2EdgePermCoord(), p2Cube.getP2UDPermCoord()};
-        byte p2Bound = (byte)Math.max(cornerPermP2UDPermPruneTable[p2State[0] * 24 + p2State[2]], P2EdgePermP2UDPermPruneTable[p2State[1] * 24 + p2State[2]]);  
-        int lastP1Move = solveLength > 0 ? solveMoves[solveLength - 1] : -1;
+        int shortestPath = Integer.MAX_VALUE;
+        int[] outMoves = null;
 
         while (true) {
-            int result = P2ida(p2State, 0, p2Bound, lastP1Move);
-            if (result == 0) break;
-            p2Bound = (byte)result;
-        }
+            int[] moves = new int[20];
+            int result = P1ida(state, 0, bound, -1, moves);
 
-        int[] outMoves = new int[solveLength];
-        System.arraycopy(solveMoves, 0, outMoves, 0, solveLength);            
-        
+            while (!p1Solves.isEmpty()) {
+                int[] p1Solve = p1Solves.poll();
+                CubieCube p2Cube = CubieCube.copyCube(cube);
+                for (int m : p1Solve) {
+                    p2Cube.move(m);
+                }
+
+                int[] p2State = new int[]{p2Cube.getCornerPermCoord(), p2Cube.getP2EdgePermCoord(), p2Cube.getP2UDPermCoord()};
+                byte p2Bound = (byte)Math.max(cornerPermP2UDPermPruneTable[p2State[0] * 24 + p2State[2]], P2EdgePermP2UDPermPruneTable[p2State[1] * 24 + p2State[2]]);  
+                int lastP1Move = p1Solve.length > 0 ? p1Solve[p1Solve.length - 1] : -1;
+                int[] p2Solve = new int[20];
+                while (true) {
+                    int result2 = P2ida(p2State, 0, p2Bound, lastP1Move, p2Solve);
+                    if (result2 == 0) break;
+                    p2Bound = (byte)result2;
+                }
+                if (p1Solve.length + p2Solve[0] < shortestPath) {
+                    shortestPath = p1Solve.length + p2Solve[0];
+                    outMoves = new int[p1Solve.length + p2Solve[0]];
+
+                    System.arraycopy(p1Solve, 0, outMoves, 0, p1Solve.length);
+                    System.arraycopy(p2Solve, 1, outMoves, p1Solve.length, p2Solve[0]);
+                }
+            }
+            if (result == recursionLimit) break;
+            bound = (byte)result;
+        }
+        System.out.println("Solve length: " + shortestPath + " moves");
         return outMoves;
     }
 
-    private static int P1ida(int[] state, int depth, int bound, int lastMove) {
+    private static int P1ida(int[] state, int depth, int bound, int lastMove, int[] moves) {
         byte heuristic = (byte)Math.max(cornerOriUDSlicePruneTable[state[0] * 495 + state[2]], edgeOriUDSlicePruneTable[state[1] * 495 + state[2]]);
 
         if (state[0] == 0 && state[1] == 0 && state[2] == 0) {
-            solveLength += depth;
-            return 0;
+            p1Solves.add(Arrays.copyOf(moves, depth));
+            return Integer.MAX_VALUE;
         }
  
         if (depth == bound) return heuristic;
@@ -158,19 +169,19 @@ public class KociembaSolver {
                 continue;
             }
 
-            solveMoves[depth] = m;
-            int result = P1ida(nextState, depth + 1, bound, m);
+            moves[depth] = m;
+            int result = P1ida(nextState, depth + 1, bound, m, moves);
             if (result == 0) return 0;
             minimum = Math.min(minimum, result);
         }
         return minimum;
     }
 
-    private static int P2ida(int[] state, int depth, int bound, int lastMove) {
+    private static int P2ida(int[] state, int depth, int bound, int lastMove, int[] moves) {
         byte heuristic = (byte)Math.max(cornerPermP2UDPermPruneTable[state[0] * 24 + state[2]], P2EdgePermP2UDPermPruneTable[state[1] * 24 + state[2]]);
 
         if (state[0] == 0 && state[1] == 0 && state[2] == 0) {
-            solveLength += depth;
+            moves[0] = depth;
             return 0;
         }
         if (depth == bound) return heuristic;
@@ -192,8 +203,8 @@ public class KociembaSolver {
                 continue;
             }
 
-            solveMoves[depth + solveLength] = m;
-            int result = P2ida(nextState, depth + 1, bound, m);
+            moves[depth + 1] = m;
+            int result = P2ida(nextState, depth + 1, bound, m, moves);
             if (result == 0) return 0;
             minimum = Math.min(minimum, result);
         }

@@ -1,7 +1,7 @@
 // Ethan Hunsaker
 // 2/24/2026
 // Rubiks Cube Solver using Herbert Kociemba's Two Phase Algorithm
-// Average moves per solve: 23.2
+// Average moves per solve: 20.5
 
 public class App {
     public static void main(String[] args) throws Exception {
@@ -37,6 +37,21 @@ public class App {
             }
             cube.displayCubeTerminal();
         }
+    }
+
+    @SuppressWarnings("unused")
+    private static void testSolveAverage(int solves) {
+        KociembaSolver.buildTables();
+        double sum = 0;
+
+        for (int i = 0; i < solves; i++) {
+            if (i%10==0) System.out.println("Test progress: "+i+"%"); 
+            CubieCube cube = new CubieCube();
+            cube.randomizeCube(100);
+            sum += KociembaSolver.solveCube(cube).length;
+        }
+
+        System.out.println("Average moves/solve over "+solves+" solves was "+ sum/solves);
     }
 }
  

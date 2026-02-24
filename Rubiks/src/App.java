@@ -1,18 +1,22 @@
 public class App {
     public static void main(String[] args) throws Exception {
-        VectorCube cube = new VectorCube();
-        CubieCube cubie = new CubieCube();
-        CubieCube.buildTables();
-        // RubiksCube displayCube = new RubiksCube();
-        RubiksCube cubieDisplay = new RubiksCube();
+        CubieCube cube = new CubieCube();
+        KociembaSolver.buildTables();
+        RubiksCube cubeDisplay = new RubiksCube();
+        cubeDisplay.showCube(cube);
 
-        // displayCube.showVectorCube(cube);
-        cubieDisplay.showCubieCube(cubie);
-
-        if (args.length != 0) {
-            cube.moveSequence(args);
-        } else {
-            // cube.randomizeCube(50);
+        if (args.length > 0) {
+            for (String m : args) {
+                switch (m) {
+                    case "u" -> cube.move(0);
+                    case "d" -> cube.move(1);
+                    case "l" -> cube.move(2);
+                    case "r" -> cube.move(3);
+                    case "f" -> cube.move(4);
+                    case "b" -> cube.move(5);
+                    default -> throw new AssertionError();
+                }
+            }
         }
     }
 }

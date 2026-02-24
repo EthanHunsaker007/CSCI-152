@@ -216,129 +216,7 @@ public class RubiksCube extends JPanel implements ActionListener {
         }
     }
 
-    public void showVectorCube(VectorCube cube) {
-        char[] faceData = cube.cube;
-        JFrame frame = new JFrame("Interactive 3D Rubik's Cube");
-        RubiksCube Cube = new RubiksCube();
-        Cube.setCubeColors(faceData);
-
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.setBackground(new Color(40, 40, 40));
-
-        JButton UBtn = new JButton("U");
-        UBtn.addActionListener(e -> {
-            cube.u();
-            Cube.setCubeColors(cube.cube);
-            cube.displayCubeTerminal();
-        });
-
-        JButton DBtn = new JButton("D");
-        DBtn.addActionListener(e -> {
-            cube.d();
-            Cube.setCubeColors(cube.cube);
-            cube.displayCubeTerminal();
-        });
-
-        JButton RBtn = new JButton("R");
-        RBtn.addActionListener(e -> {
-            cube.r();
-            Cube.setCubeColors(cube.cube);
-            cube.displayCubeTerminal();
-        });
-
-        JButton LBtn = new JButton("L");
-        LBtn.addActionListener(e -> {
-            cube.l();
-            Cube.setCubeColors(cube.cube);
-            cube.displayCubeTerminal();
-        });
-
-        JButton FBtn = new JButton("F");
-        FBtn.addActionListener(e -> {
-            cube.f();
-            Cube.setCubeColors(cube.cube);
-            cube.displayCubeTerminal();
-        });
-
-        JButton BBtn = new JButton("B");
-        BBtn.addActionListener(e -> {
-            cube.b();
-            Cube.setCubeColors(cube.cube);
-            cube.displayCubeTerminal();
-        });
-        JButton uBtn = new JButton("U'");
-        uBtn.addActionListener(e -> {
-            cube.U();
-            Cube.setCubeColors(cube.cube);
-            cube.displayCubeTerminal();
-        });
-
-        JButton dBtn = new JButton("D'");
-        dBtn.addActionListener(e -> {
-            cube.D();
-            Cube.setCubeColors(cube.cube);
-            cube.displayCubeTerminal();
-        });
-
-        JButton rBtn = new JButton("R'");
-        rBtn.addActionListener(e -> {
-            cube.R();
-            Cube.setCubeColors(cube.cube);
-            cube.displayCubeTerminal();
-        });
-
-        JButton lBtn = new JButton("L'");
-        lBtn.addActionListener(e -> {
-            cube.L();
-            Cube.setCubeColors(cube.cube);
-            cube.displayCubeTerminal();
-        });
-
-        JButton fBtn = new JButton("F'");
-        fBtn.addActionListener(e -> {
-            cube.F();
-            Cube.setCubeColors(cube.cube);
-            cube.displayCubeTerminal();
-        });
-
-        JButton bBtn = new JButton("B'");
-        bBtn.addActionListener(e -> {
-            cube.B();
-            Cube.setCubeColors(cube.cube);
-            cube.displayCubeTerminal();
-        });
-        JButton scrambleBtn = new JButton("Scramble");
-        scrambleBtn.addActionListener(e -> {
-            cube.randomizeCube(100);
-            Cube.setCubeColors(cube.cube);
-            cube.displayCubeTerminal();
-        });
-
-        buttonPanel.add(UBtn);
-        buttonPanel.add(uBtn);
-        buttonPanel.add(DBtn);
-        buttonPanel.add(dBtn);
-        buttonPanel.add(RBtn);
-        buttonPanel.add(rBtn);
-        buttonPanel.add(LBtn);
-        buttonPanel.add(lBtn);
-        buttonPanel.add(FBtn);
-        buttonPanel.add(fBtn);
-        buttonPanel.add(BBtn);
-        buttonPanel.add(bBtn);
-        buttonPanel.add(scrambleBtn);
-
-        // Layout management
-        frame.setLayout(new BorderLayout());
-        frame.add(Cube, BorderLayout.CENTER);
-        frame.add(buttonPanel, BorderLayout.SOUTH);
-
-        frame.setSize(800, 800);
-        frame.setLocationRelativeTo(null);
-        frame.setVisible(true);
-    }
-
-    public void showCubieCube(CubieCube cube) {
+    public void showCube(CubieCube cube) {
         char[] faceData = cube.as1DFaceletArray();
         JFrame frame = new JFrame("Interactive 3D Rubik's Cube");
         RubiksCube Cube = new RubiksCube();
@@ -391,7 +269,7 @@ public class RubiksCube extends JPanel implements ActionListener {
 
         JButton solveBtn = new JButton("Solve");
         solveBtn.addActionListener(e -> {
-            int[] solveMoves = CubieCube.solveCube(cube);
+            int[] solveMoves = KociembaSolver.solveCube(cube);
             AtomicInteger m = new AtomicInteger(0);
             Runnable moveIncrement = () -> {
                 if (m.get() > solveMoves.length) {

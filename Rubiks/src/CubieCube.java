@@ -4,6 +4,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.IntFunction;
+import java.util.function.ToIntFunction;
 
 public class CubieCube {
     // 0=URF, 1=UFL, 2=ULB, 3=UBR, 4=DFR, 5=DLF, 6=DBL, 7=DRB
@@ -134,7 +136,7 @@ public class CubieCube {
     private static int solveLength = 0;
 
     private static boolean tablesGenerated = false;
-
+    
     public void move(int m) {
         int move = m % 6;
         int turns = m / 6 + 1;
@@ -239,44 +241,56 @@ public class CubieCube {
         return coord;        
     }
 
-    private void fromCornerOriCoord(int coord) {
+    private static CubieCube fromCornerOriCoord(int coord) {
+        CubieCube cube = new CubieCube();
         int sum = 0;
+
         for (int i = 6; i >= 0; i--) {
-            cornerOri[i] = (byte)(coord % 3);
-            sum += cornerOri[i];
+            cube.cornerOri[i] = (byte)(coord % 3);
+            sum += cube.cornerOri[i];
             coord /= 3;
         }
-        cornerOri[7] = (byte)((3 - sum % 3) % 3);
+
+        cube.cornerOri[7] = (byte)((3 - sum % 3) % 3);
+        return cube;
     }
 
-    private void fromEdgeOriCoord(int coord) {
+    private static CubieCube fromEdgeOriCoord(int coord) {
+        CubieCube cube = new CubieCube();
         int sum = 0;
+
         for (int i = 10; i >= 0; i--) {
-            edgeOri[i] = (byte)(coord % 2);
-            sum += edgeOri[i];
+            cube.edgeOri[i] = (byte)(coord % 2);
+            sum += cube.edgeOri[i];
             coord /= 2;
         }
-        edgeOri[11] = (byte)((2 - sum % 2) % 2);
+
+        cube.edgeOri[11] = (byte)((2 - sum % 2) % 2);
+        return cube;
     }
 
-    private void fromUDSliceCoord(int coord) {
+    private static CubieCube fromUDSliceCoord(int coord) {
+        CubieCube cube = new CubieCube();
         int k = 3;
         int nextEdge = 7;
 
         for (int i = 11; i >= 0; i--){
             int binomial = binomial(i, k);
             if (coord >= binomial) {
-                edgePos[i] = (byte)(nextEdge);
+                cube.edgePos[i] = (byte)(nextEdge);
                 nextEdge--;
                 coord -= binomial;
             } else {
-                edgePos[i] = (byte)(8 + k);
+                cube.edgePos[i] = (byte)(8 + k);
                 k--;
             }
         }
+
+        return cube;
     }
 
-    private void fromCornerPermCoord(int coord) {
+    private static CubieCube fromCornerPermCoord(int coord) {
+        CubieCube cube = new CubieCube();
         int[] perms = new int[8];
     
         for (int i = 1; i <= 7; i++) {
@@ -288,12 +302,15 @@ public class CubieCube {
 
         for (int i = 7; i >= 0; i--) {
             int rank = corners.size() - 1 - perms[i];
-            cornerPos[i] = corners.get(rank).byteValue();
+            cube.cornerPos[i] = corners.get(rank).byteValue();
             corners.remove(rank);
         }
+
+        return cube;
     }
 
-    private void fromP2EdgePermCoord(int coord) {
+    private static CubieCube fromP2EdgePermCoord(int coord) {
+        CubieCube cube = new CubieCube();
         int[] perms = new int[8];
     
         for (int i = 1; i <= 7; i++) {
@@ -305,12 +322,15 @@ public class CubieCube {
 
         for (int i = 7; i >= 0; i--) {
             int rank = edges.size() - 1 - perms[i];
-            edgePos[i] = edges.get(rank).byteValue();
+            cube.edgePos[i] = edges.get(rank).byteValue();
             edges.remove(rank);
         }
+        
+        return cube;
     }
 
-    private void fromP2UDPermCoord(int coord) {
+    private static CubieCube fromP2UDPermCoord(int coord) {
+        CubieCube cube = new CubieCube();
         int[] perms = new int[4];
 
         for (int i = 1; i <= 3; i++) {
@@ -322,187 +342,79 @@ public class CubieCube {
 
         for (int i = 11; i >= 8; i--) {
             int rank = edges.size() - 1 - perms[i - 8];
-            edgePos[i] = edges.get(rank).byteValue();
+            cube.edgePos[i] = edges.get(rank).byteValue();
             edges.remove(rank);
         }
+
+        return cube;
     }
 
     public static void buildTables() {
         if (!tablesGenerated) {
             generateMoveTables();
             generatePruneTables();
+            
             tablesGenerated = true;
         }
     }
 
-    private static void generateMoveTables() {
-        for (int coord = 0; coord < 2187; coord++) {
-            CubieCube testCube = new CubieCube();
-            testCube.fromCornerOriCoord(coord);
+    private static void populateMoveTable(int[] table, int size, IntFunction<CubieCube> fromCoord, ToIntFunction<CubieCube> getCoord) {
+        for (int coord = 0; coord < size; coord++) {
+            CubieCube testCube = fromCoord.apply(coord);
 
             for (int m = 0; m < 6; m++) {
                 for (int p = 0; p < 4; p++) {
                     testCube.move(m);
                     if (p != 3) {
-                        cornerOriMoveTable[coord * 18 + (p * 6 + m)] = testCube.getCornerOriCoord();
+                        table[coord * 18 + (p * 6 + m)] = getCoord.applyAsInt(testCube);
                     }    
                 }
             }
-        }
-
-        for (int coord = 0; coord < 2048; coord++) {
-            CubieCube testCube = new CubieCube();
-            testCube.fromEdgeOriCoord(coord);
-
-            for (int m = 0; m < 6; m++) {
-                for (int p = 0; p < 4; p++) {
-                    testCube.move(m);
-                    if (p != 3) {
-                        edgeOriMoveTable[coord * 18 + (p * 6 + m)] = testCube.getEdgeOriCoord();
-                    }    
-                }
-            }
-        }
-
-        for (int coord = 0; coord < 495; coord++) {
-            CubieCube testCube = new CubieCube();
-            testCube.fromUDSliceCoord(coord);
-
-            for (int m = 0; m < 6; m++) {
-                for (int p = 0; p < 4; p++) {
-                    testCube.move(m);
-                    if (p != 3) {
-                        UDSliceMoveTable[coord * 18 + (p * 6 + m)] = testCube.getUDSliceCoord();
-                    }    
-                }
-            }
-        }
-
-        for (int coord = 0; coord < 40320; coord++) {
-            CubieCube testCube = new CubieCube();
-            testCube.fromCornerPermCoord(coord);
-
-            for (int m = 0; m < 6; m++) {
-                for (int p = 0; p < 4; p++) {
-                    testCube.move(m);
-                    if (p != 3) {
-                        cornerPermMoveTable[coord * 18 + (p * 6 + m)] = testCube.getCornerPermCoord();
-                    }    
-                }
-            }
-        }
-
-        for (int coord = 0; coord < 40320; coord++) {
-            CubieCube testCube = new CubieCube();
-            testCube.fromP2EdgePermCoord(coord);
-
-            for (int m = 0; m < 6; m++) {
-                for (int p = 0; p < 4; p++) {
-                    testCube.move(m);
-                    if (p != 3) {
-                        P2EdgePermMoveTable[coord * 18 + (p * 6 + m)] = testCube.getP2EdgePermCoord();
-                    }    
-                }
-            }
-        }
-
-        for (int coord = 0; coord < 24; coord++) {
-            CubieCube testCube = new CubieCube();
-            testCube.fromP2UDPermCoord(coord);
-
-            for (int m = 0; m < 6; m++) {
-                for (int p = 0; p < 4; p++) {
-                    testCube.move(m);
-                    if (p != 3) {
-                        P2UDPermMoveTable[coord * 18 + (p * 6 + m)] = testCube.getP2UDPermCoord();
-                    }    
-                }
-            }
-        }
+        }        
     }
 
-    public static void generatePruneTables() {
-        generateMoveTables();
+    private static void generateMoveTables() {
+        populateMoveTable(cornerOriMoveTable, 2187, CubieCube::fromCornerOriCoord, CubieCube::getCornerOriCoord);
+        populateMoveTable(edgeOriMoveTable, 2048, CubieCube::fromEdgeOriCoord, CubieCube::getEdgeOriCoord);
+        populateMoveTable(UDSliceMoveTable, 495, CubieCube::fromUDSliceCoord, CubieCube::getUDSliceCoord);
+        populateMoveTable(cornerPermMoveTable, 40320, CubieCube::fromCornerPermCoord, CubieCube::getCornerPermCoord);
+        populateMoveTable(P2EdgePermMoveTable, 40320, CubieCube::fromP2EdgePermCoord, CubieCube::getP2EdgePermCoord);
+        populateMoveTable(P2UDPermMoveTable, 24, CubieCube::fromP2UDPermCoord, CubieCube::getP2UDPermCoord);
+    }
+
+    private static void populatePruneTable(byte[] pruneTable, int[] moveTableOne, int[] moveTableTwo, int width, boolean isPhaseTwo) {
         Queue<int[]> coordQueue = new ArrayDeque<>();
 
         coordQueue.add(new int[]{0, 0});
-        cornerOriUDSlicePruneTable[0] = 0;
+        pruneTable[0] = 0;
 
         while (!coordQueue.isEmpty()) {
             int[] temp = coordQueue.poll();
-            int cornerOriCoord = temp[0] / 495;
-            int UDSliceCoord = temp[0] % 495;
+            int coordOne = temp[0] / width;
+            int coordTwo = temp[0] % width;
 
-            for (int i = 0; i < 18; i++) {
-                int nextCornerOri = cornerOriMoveTable[cornerOriCoord * 18 + i]; 
-                int nextUDSlice = UDSliceMoveTable[UDSliceCoord * 18 + i];
+            int[] moves = isPhaseTwo ? phase2Moves : new int[]{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17};
+
+            for (int i : moves) {
+                int nextCoordOne = moveTableOne[coordOne * 18 + i]; 
+                int nextCoordTwo = moveTableTwo[coordTwo * 18 + i];
                 
-                if (cornerOriUDSlicePruneTable[nextCornerOri * 495 + nextUDSlice] == -1) {
-                    cornerOriUDSlicePruneTable[nextCornerOri * 495 + nextUDSlice] = (byte)(temp[1] + 1);
-                    coordQueue.add(new int[]{nextCornerOri * 495 + nextUDSlice, temp[1] + 1});
+                if (pruneTable[nextCoordOne * width + nextCoordTwo] == -1) {
+                    pruneTable[nextCoordOne * width + nextCoordTwo] = (byte)(temp[1] + 1);
+                    coordQueue.add(new int[]{nextCoordOne * width + nextCoordTwo, temp[1] + 1});
                 }
             }
-        }
-
-        coordQueue.add(new int[]{0, 0});
-        edgeOriUDSlicePruneTable[0] = 0;
-
-        while (!coordQueue.isEmpty()) {
-            int[] temp = coordQueue.poll();
-            int edgeOriCoord = temp[0] / 495;
-            int UDSliceCoord = temp[0] % 495;
-
-            for (int i = 0; i < 18; i++) {
-                int nextEdgeOri = edgeOriMoveTable[edgeOriCoord * 18 + i]; 
-                int nextUDSlice = UDSliceMoveTable[UDSliceCoord * 18 + i];
-                
-                if (edgeOriUDSlicePruneTable[nextEdgeOri * 495 + nextUDSlice] == -1) {
-                    edgeOriUDSlicePruneTable[nextEdgeOri * 495 + nextUDSlice] = (byte)(temp[1] + 1);
-                    coordQueue.add(new int[]{nextEdgeOri * 495 + nextUDSlice, temp[1] + 1});
-                }
-            }
-        }
-
-        coordQueue.add(new int[]{0, 0});
-        P2EdgePermP2UDPermPruneTable[0] = 0;
-
-        while (!coordQueue.isEmpty()) {
-            int[] temp = coordQueue.poll();
-            int P2EdgePermCoord = temp[0] / 24;
-            int P2UDPermCoord = temp[0] % 24;
-
-            for (int i : phase2Moves) {
-                int nextP2EdgePerm = P2EdgePermMoveTable[P2EdgePermCoord * 18 + i]; 
-                int nextP2UDPerm = P2UDPermMoveTable[P2UDPermCoord * 18 + i];
-                
-                if (P2EdgePermP2UDPermPruneTable[nextP2EdgePerm * 24 + nextP2UDPerm] == -1) {
-                    P2EdgePermP2UDPermPruneTable[nextP2EdgePerm * 24 + nextP2UDPerm] = (byte)(temp[1] + 1);
-                    coordQueue.add(new int[]{nextP2EdgePerm * 24 + nextP2UDPerm, temp[1] + 1});
-                }
-            }
-        }
-
-        coordQueue.add(new int[]{0, 0});
-        cornerPermP2UDPermPruneTable[0] = 0;
-
-        while (!coordQueue.isEmpty()) {
-            int[] temp = coordQueue.poll();
-            int cornerPermCoord = temp[0] / 24;
-            int P2UDPermCoord = temp[0] % 24;
-
-            for (int i : phase2Moves) {
-                int nextCornerPerm = cornerPermMoveTable[cornerPermCoord * 18 + i]; 
-                int nextP2UDPerm = P2UDPermMoveTable[P2UDPermCoord * 18 + i];
-                
-                if (cornerPermP2UDPermPruneTable[nextCornerPerm * 24 + nextP2UDPerm] == -1) {
-                    cornerPermP2UDPermPruneTable[nextCornerPerm * 24 + nextP2UDPerm] = (byte)(temp[1] + 1);
-                    coordQueue.add(new int[]{nextCornerPerm * 24 + nextP2UDPerm, temp[1] + 1});
-                }
-            }
-        }
+        }        
     }
 
-    public static void solveCube(CubieCube cube) {
+    public static void generatePruneTables() {
+        populatePruneTable(cornerOriUDSlicePruneTable, cornerOriMoveTable, UDSliceMoveTable, 495, false);
+        populatePruneTable(edgeOriUDSlicePruneTable, edgeOriMoveTable, UDSliceMoveTable, 495, false);
+        populatePruneTable(P2EdgePermP2UDPermPruneTable, P2EdgePermMoveTable, P2UDPermMoveTable, 24, true);
+        populatePruneTable(cornerPermP2UDPermPruneTable, cornerPermMoveTable, P2UDPermMoveTable, 24, true);
+    }
+
+    public static int[] solveCube(CubieCube cube) {
         int[] state = new int[]{cube.getCornerOriCoord(), cube.getEdgeOriCoord(), cube.getUDSliceCoord()};
         byte bound = (byte)Math.max(cornerOriUDSlicePruneTable[state[0] * 495 + state[2]], edgeOriUDSlicePruneTable[state[1] * 495 + state[2]]);       
         solveLength = 0;
@@ -530,10 +442,10 @@ public class CubieCube {
             p2Bound = (byte)result;
         }
 
-        for (int i = 0; i < solveLength; i++) {
-            cube.move(solveMoves[i]);
-        } 
-        System.out.println(solveLength);
+        int[] outMoves = new int[solveLength];
+        System.arraycopy(solveMoves, 0, outMoves, 0, solveLength);            
+        
+        return outMoves;
     }
 
     private static int P1ida(int[] state, int depth, int bound, int lastMove) {
@@ -543,7 +455,7 @@ public class CubieCube {
             solveLength += depth;
             return 0;
         }
-
+ 
         if (depth == bound) return heuristic;
 
         int minimum = Integer.MAX_VALUE;

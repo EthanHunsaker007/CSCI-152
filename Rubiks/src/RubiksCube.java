@@ -3,10 +3,14 @@ import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import java.util.concurrent.atomic.AtomicInteger;
 import javax.swing.*;
 
 public class RubiksCube extends JPanel implements ActionListener {
-
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private double angleX = -0.5, angleY = 0.5;
     @SuppressWarnings("FieldMayBeFinal")
     private double angleZ = 0;
@@ -385,18 +389,19 @@ public class RubiksCube extends JPanel implements ActionListener {
             Cube.setCubeColors(cube.as1DFaceletArray());
         });
 
-        JButton testBtn = new JButton("Test");
-        testBtn.addActionListener(e -> {
-            System.out.println(cube.getCornerOriCoord());
-            System.out.println(cube.getEdgeOriCoord());
-            System.out.println(cube.getUDSliceCoord());
-        });
-
-        JButton testBtn2 = new JButton("Test2");
-        testBtn2.addActionListener(e -> {
-            CubieCube.generatePruneTables();
-            cube.solveCube(cube);
-            Cube.setCubeColors(cube.as1DFaceletArray());
+        JButton solveBtn = new JButton("Solve");
+        solveBtn.addActionListener(e -> {
+            int[] solveMoves = CubieCube.solveCube(cube);
+            AtomicInteger m = new AtomicInteger(0);
+            Runnable moveIncrement = () -> {
+                if (m.get() > solveMoves.length) {
+                    scheduler.shutdown();
+                    return;
+                }
+                cube.move(solveMoves[m.getAndIncrement()]);
+                Cube.setCubeColors(cube.as1DFaceletArray());
+            };
+            scheduler.scheduleAtFixedRate(moveIncrement, 0, 500, MILLISECONDS);
         });
 
         buttonPanel.add(UBtn);
@@ -406,8 +411,7 @@ public class RubiksCube extends JPanel implements ActionListener {
         buttonPanel.add(FBtn);
         buttonPanel.add(BBtn);
         buttonPanel.add(scrambleBtn);
-        buttonPanel.add(testBtn);
-        buttonPanel.add(testBtn2);
+        buttonPanel.add(solveBtn);
 
         // Layout management
         frame.setLayout(new BorderLayout());

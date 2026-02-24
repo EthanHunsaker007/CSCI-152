@@ -2,7 +2,7 @@ public class App {
     public static void main(String[] args) throws Exception {
         VectorCube cube = new VectorCube();
         CubieCube cubie = new CubieCube();
-
+        CubieCube.buildTables();
         // RubiksCube displayCube = new RubiksCube();
         RubiksCube cubieDisplay = new RubiksCube();
 

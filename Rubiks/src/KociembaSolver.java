@@ -97,10 +97,11 @@ public class KociembaSolver {
     }
 
     public static int[] solveCube(CubieCube cube) {
-        int[] state = new int[]{cube.getCornerOriCoord(), cube.getEdgeOriCoord(), cube.getUDSliceCoord()};
-        byte bound = (byte)Math.max(cornerOriUDSlicePruneTable[state[0] * 495 + state[2]], edgeOriUDSlicePruneTable[state[1] * 495 + state[2]]);       
         solveLength = 0;
         Arrays.fill(solveMoves, 0);
+        
+        int[] state = new int[]{cube.getCornerOriCoord(), cube.getEdgeOriCoord(), cube.getUDSliceCoord()};
+        byte bound = (byte)Math.max(cornerOriUDSlicePruneTable[state[0] * 495 + state[2]], edgeOriUDSlicePruneTable[state[1] * 495 + state[2]]);       
 
         while (true) { 
             int result = P1ida(state, 0, bound, -1);
@@ -168,7 +169,7 @@ public class KociembaSolver {
     private static int P2ida(int[] state, int depth, int bound, int lastMove) {
         byte heuristic = (byte)Math.max(cornerPermP2UDPermPruneTable[state[0] * 24 + state[2]], P2EdgePermP2UDPermPruneTable[state[1] * 24 + state[2]]);
 
-        if (heuristic == 0) {
+        if (state[0] == 0 && state[1] == 0 && state[2] == 0) {
             solveLength += depth;
             return 0;
         }

@@ -16,6 +16,8 @@ public class KociembaSolver {
     private final static int[] P2UDPermMoveTable = new int[24 * 18];
 
     // Prune tables for coordinate combinations
+    // Store minimum distance away from either 
+    // any g1 cube or solved cube for phase two
     private final static byte[] cornerOriUDSlicePruneTable = new byte[2187 * 495];
     private final static byte[] edgeOriUDSlicePruneTable = new byte[2048 * 495];
     private final static byte[] cornerPermP2UDPermPruneTable = new byte[40320 * 24];
@@ -107,7 +109,7 @@ public class KociembaSolver {
 
         int recursionLimit = 18;
         long start = System.currentTimeMillis();
-        long end = start + (long)(solveSeconds*1000);
+        long end = start + (long) (solveSeconds * 1000);
 
         int shortestPath = Integer.MAX_VALUE;
         int[] outMoves = null;
@@ -149,17 +151,19 @@ public class KociembaSolver {
             }
             bound = (byte) result;
         }
-        if (outMoves != null) {
-            System.out.println("Solve length: " + shortestPath + " moves");
-            System.err.println("Solve time: " + (double)(System.currentTimeMillis() - start)/1000.0000 + " seconds");
-        } else{
+        if (outMoves == null) {
             System.out.println("Cube could not be solved in time");
+        } else {
+            System.out.println("Solve length: " + shortestPath + " moves");
+            System.err.println("Solve time: " + (double) (System.currentTimeMillis() - start) / 1000 + " seconds");
         }
         return outMoves;
     }
 
     private static int P1ida(int[] state, int depth, int bound, int lastMove, int[] moves, long endTime) {
-        if (System.currentTimeMillis() >= endTime) return Integer.MAX_VALUE;
+        if (System.currentTimeMillis() >= endTime) {
+            return Integer.MAX_VALUE;
+        }
         byte heuristic = (byte) Math.max(cornerOriUDSlicePruneTable[state[0] * 495 + state[2]], edgeOriUDSlicePruneTable[state[1] * 495 + state[2]]);
 
         if (state[0] == 0 && state[1] == 0 && state[2] == 0) {

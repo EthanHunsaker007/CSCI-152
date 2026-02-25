@@ -167,8 +167,8 @@ public class CubieCube {
                 break;
             }
             if (edgePos[i] == 11 || edgePos[i] == 10 || edgePos[i] == 9 || edgePos[i] == 8) {
-                UDSlices--; 
-            }else {
+                UDSlices--;
+            } else {
                 coord += binomial(i, UDSlices);
             }
         }
@@ -358,8 +358,8 @@ public class CubieCube {
             for (int j = 1; j < 10; j++) {
                 displayString.append(cube[i - 9 + j]);
                 if (j % 3 != 0) {
-                    displayString.append('|'); 
-                }else {
+                    displayString.append('|');
+                } else {
                     displayString.append('\n');
                 }
                 if (j == 9 && i > 9) {

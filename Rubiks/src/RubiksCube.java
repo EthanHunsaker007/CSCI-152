@@ -1,3 +1,4 @@
+
 import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
@@ -10,6 +11,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.swing.*;
 
 public class RubiksCube extends JPanel implements ActionListener {
+
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private double angleX = -0.5, angleY = 0.5;
     @SuppressWarnings("FieldMayBeFinal")
@@ -20,7 +22,7 @@ public class RubiksCube extends JPanel implements ActionListener {
 
     public RubiksCube() {
         setBackground(new Color(20, 20, 20));
-        
+
         // Initialize 27 cubies (3x3x3)
         for (int x = -1; x <= 1; x++) {
             for (int y = -1; y <= 1; y++) {
@@ -71,30 +73,49 @@ public class RubiksCube extends JPanel implements ActionListener {
             int gz = (int) Math.round(cubie.oz / (cubie.size + cubie.gap));
 
             // Front Face (Z = 1)
-            if (gz == 1) cubie.faceColors[0] = getColor(faceData[18 + (1-gy)*3 + (gx+1)]);
+            if (gz == 1) {
+                cubie.faceColors[0] = getColor(faceData[18 + (1 - gy) * 3 + (gx + 1)]);
+            }
             // Back Face (Z = -1)
-            if (gz == -1) cubie.faceColors[1] = getColor(faceData[36 + (1-gy)*3 + (1-gx)]);
+            if (gz == -1) {
+                cubie.faceColors[1] = getColor(faceData[36 + (1 - gy) * 3 + (1 - gx)]);
+            }
             // Right Face (X = 1)
-            if (gx == 1) cubie.faceColors[2] = getColor(faceData[45 + (1-gy)*3 + (1-gz)]);
+            if (gx == 1) {
+                cubie.faceColors[2] = getColor(faceData[45 + (1 - gy) * 3 + (1 - gz)]);
+            }
             // Left Face (X = -1)
-            if (gx == -1) cubie.faceColors[3] = getColor(faceData[27 + (1-gy)*3 + (gz+1)]);
+            if (gx == -1) {
+                cubie.faceColors[3] = getColor(faceData[27 + (1 - gy) * 3 + (gz + 1)]);
+            }
             // Top Face (Y = -1)
-            if (gy == 1) cubie.faceColors[4] = getColor(faceData[(gz+1)*3 + (gx+1)]);
+            if (gy == 1) {
+                cubie.faceColors[4] = getColor(faceData[(gz + 1) * 3 + (gx + 1)]);
+            }
             // Bottom Face (Y = 1)
-            if (gy == -1) cubie.faceColors[5] = getColor(faceData[9 + (1-gz)*3 + (gx+1)]);
+            if (gy == -1) {
+                cubie.faceColors[5] = getColor(faceData[9 + (1 - gz) * 3 + (gx + 1)]);
+            }
         }
         repaint();
     }
 
     private Color getColor(char code) {
         return switch (code) {
-            case 'w' -> Color.WHITE;
-            case 'y' -> Color.YELLOW;
-            case 'r' -> new Color(183, 18, 52);
-            case 'o' -> new Color(255, 88, 0);
-            case 'b' -> new Color(0, 70, 173);
-            case 'g' -> new Color(0, 155, 72);
-            default -> Color.BLACK;
+            case 'w' ->
+                Color.WHITE;
+            case 'y' ->
+                Color.YELLOW;
+            case 'r' ->
+                new Color(183, 18, 52);
+            case 'o' ->
+                new Color(255, 88, 0);
+            case 'b' ->
+                new Color(0, 70, 173);
+            case 'g' ->
+                new Color(0, 155, 72);
+            default ->
+                Color.BLACK;
         };
     }
 
@@ -133,26 +154,29 @@ public class RubiksCube extends JPanel implements ActionListener {
             g2d.setStroke(new BasicStroke(1.5f));
             g2d.draw(face.path);
         }
-        
+
         // Instructions overlay
         g2d.setColor(Color.GRAY);
         g2d.drawString("Drag mouse to rotate", 20, 30);
     }
 
     private static class Cubie {
-        double ox, oy, oz; 
-        double size = 50; 
+
+        double ox, oy, oz;
+        double size = 50;
         double gap = 4;
         // Order: Front, Back, Right, Left, Top, Bottom
-        Color[] faceColors = new Color[6]; 
+        Color[] faceColors = new Color[6];
 
         Cubie(double x, double y, double z) {
             this.ox = x * (size + gap);
             this.oy = y * (size + gap);
             this.oz = z * (size + gap);
-            
+
             // Initialize with default black/hidden interior
-            for(int i=0; i<6; i++) faceColors[i] = Color.BLACK;
+            for (int i = 0; i < 6; i++) {
+                faceColors[i] = Color.BLACK;
+            }
         }
 
         List<Face> getProjectedFaces(double ax, double ay, double az, int cx, int cy) {
@@ -160,17 +184,15 @@ public class RubiksCube extends JPanel implements ActionListener {
             double s = size / 2.0;
 
             // Use the faceColors array instead of hardcoded values
-            faces.add(createFace(new double[][]{{s,s,s}, {-s,s,s}, {-s,-s,s}, {s,-s,s}}, faceColors[0], ax, ay, az, cx, cy)); // Front
-            faces.add(createFace(new double[][]{{s,s,-s}, {-s,s,-s}, {-s,-s,-s}, {s,-s,-s}}, faceColors[1], ax, ay, az, cx, cy)); // Back
-            faces.add(createFace(new double[][]{{s,s,s}, {s,-s,s}, {s,-s,-s}, {s,s,-s}}, faceColors[2], ax, ay, az, cx, cy));   // Right
-            faces.add(createFace(new double[][]{{-s,s,s}, {-s,-s,s}, {-s,-s,-s}, {-s,s,-s}}, faceColors[3], ax, ay, az, cx, cy)); // Left
-            faces.add(createFace(new double[][]{{s,s,s}, {s,s,-s}, {-s,s,-s}, {-s,s,s}}, faceColors[4], ax, ay, az, cx, cy));  // Top
-            faces.add(createFace(new double[][]{{s,-s,s}, {s,-s,-s}, {-s,-s,-s}, {-s,-s,s}}, faceColors[5], ax, ay, az, cx, cy)); // Bottom
+            faces.add(createFace(new double[][]{{s, s, s}, {-s, s, s}, {-s, -s, s}, {s, -s, s}}, faceColors[0], ax, ay, az, cx, cy)); // Front
+            faces.add(createFace(new double[][]{{s, s, -s}, {-s, s, -s}, {-s, -s, -s}, {s, -s, -s}}, faceColors[1], ax, ay, az, cx, cy)); // Back
+            faces.add(createFace(new double[][]{{s, s, s}, {s, -s, s}, {s, -s, -s}, {s, s, -s}}, faceColors[2], ax, ay, az, cx, cy));   // Right
+            faces.add(createFace(new double[][]{{-s, s, s}, {-s, -s, s}, {-s, -s, -s}, {-s, s, -s}}, faceColors[3], ax, ay, az, cx, cy)); // Left
+            faces.add(createFace(new double[][]{{s, s, s}, {s, s, -s}, {-s, s, -s}, {-s, s, s}}, faceColors[4], ax, ay, az, cx, cy));  // Top
+            faces.add(createFace(new double[][]{{s, -s, s}, {s, -s, -s}, {-s, -s, -s}, {-s, -s, s}}, faceColors[5], ax, ay, az, cx, cy)); // Bottom
 
             return faces;
         }
-
-        
 
         private Face createFace(double[][] localVertices, Color color, double ax, double ay, @SuppressWarnings("unused") double az, int cx, int cy) {
             Polygon poly = new Polygon();
@@ -184,18 +206,20 @@ public class RubiksCube extends JPanel implements ActionListener {
                 // Rotation X
                 double dy = y * Math.cos(ax) - z * Math.sin(ax);
                 double dz = y * Math.sin(ax) + z * Math.cos(ax);
-                y = dy; z = dz;
+                y = dy;
+                z = dz;
 
                 // Rotation Y
                 double dx = x * Math.cos(ay) + z * Math.sin(ay);
                 dz = -x * Math.sin(ay) + z * Math.cos(ay);
-                x = dx; z = dz;
+                x = dx;
+                z = dz;
 
                 // Perspective Projection
                 double fov = 800;
                 double viewDistance = 1000;
                 double scale = fov / (viewDistance + z);
-                
+
                 poly.addPoint((int) (x * scale) + cx, (int) (y * scale) + cy);
                 totalZ += z;
             }
@@ -205,6 +229,7 @@ public class RubiksCube extends JPanel implements ActionListener {
     }
 
     private static class Face {
+
         Polygon path;
         Color color;
         double avgZ;

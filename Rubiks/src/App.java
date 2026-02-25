@@ -4,6 +4,7 @@
 // Average moves per solve: 20.5
 
 public class App {
+
     public static void main(String[] args) throws Exception {
         CubieCube cube = new CubieCube();
         KociembaSolver.buildTables();
@@ -13,19 +14,32 @@ public class App {
         if (args.length > 0) {
             for (String m : args) {
                 switch (m) {
-                    case "u" -> cube.move(0);
-                    case "d" -> cube.move(1);
-                    case "l" -> cube.move(2);
-                    case "r" -> cube.move(3);
-                    case "f" -> cube.move(4);
-                    case "b" -> cube.move(5);
-                    case "u'" -> cube.move(12);
-                    case "d'" -> cube.move(13);
-                    case "l'" -> cube.move(14);
-                    case "r'" -> cube.move(15);
-                    case "f'" -> cube.move(16);
-                    case "b'" -> cube.move(17);
-                    default -> throw new AssertionError();
+                    case "u" ->
+                        cube.move(0);
+                    case "d" ->
+                        cube.move(1);
+                    case "l" ->
+                        cube.move(2);
+                    case "r" ->
+                        cube.move(3);
+                    case "f" ->
+                        cube.move(4);
+                    case "b" ->
+                        cube.move(5);
+                    case "u'" ->
+                        cube.move(12);
+                    case "d'" ->
+                        cube.move(13);
+                    case "l'" ->
+                        cube.move(14);
+                    case "r'" ->
+                        cube.move(15);
+                    case "f'" ->
+                        cube.move(16);
+                    case "b'" ->
+                        cube.move(17);
+                    default ->
+                        throw new AssertionError();
                 }
             }
             cubeDisplay.setCubeColors(cube.as1DFaceletArray());
@@ -45,13 +59,14 @@ public class App {
         double sum = 0;
 
         for (int i = 0; i < solves; i++) {
-            if (i%10==0) System.out.println("Test progress: "+i+"%"); 
+            if (i % 10 == 0) {
+                System.out.println("Test progress: " + i + "%");
+            }
             CubieCube cube = new CubieCube();
             cube.randomizeCube(100);
             sum += KociembaSolver.solveCube(cube).length;
         }
 
-        System.out.println("Average moves/solve over "+solves+" solves was "+ sum/solves);
+        System.out.println("Average moves/solve over " + solves + " solves was " + sum / solves);
     }
 }
- 

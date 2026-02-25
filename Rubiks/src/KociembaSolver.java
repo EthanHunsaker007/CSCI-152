@@ -149,8 +149,12 @@ public class KociembaSolver {
             }
             bound = (byte) result;
         }
-        System.out.println("Solve length: " + shortestPath + " moves");
-        System.err.println("Solve time:" + (double)(System.currentTimeMillis() - start)/1000.0000);
+        if (outMoves != null) {
+            System.out.println("Solve length: " + shortestPath + " moves");
+            System.err.println("Solve time: " + (double)(System.currentTimeMillis() - start)/1000.0000 + " seconds");
+        } else{
+            System.out.println("Cube could not be solved in time");
+        }
         return outMoves;
     }
 

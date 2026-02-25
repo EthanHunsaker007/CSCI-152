@@ -51,6 +51,7 @@ public class App {
             }
             cube.displayCubeTerminal();
         }
+        // testSolveMoveAverage(100, 1);
     }
 
     @SuppressWarnings("unused")
@@ -64,7 +65,12 @@ public class App {
             }
             CubieCube cube = new CubieCube();
             cube.randomizeCube(100);
-            sum += KociembaSolver.solveCube(cube, solveSeconds).length;
+            int[] solve = KociembaSolver.solveCube(cube, solveSeconds);
+            if (solve == null) {
+                solves--;
+            } else {
+                sum += solve.length;
+            }
         }
 
         System.out.println("Average moves/solve over " + solves + " solves was " + sum / solves);

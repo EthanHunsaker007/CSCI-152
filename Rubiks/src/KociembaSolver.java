@@ -99,22 +99,24 @@ public class KociembaSolver {
         populatePruneTable(cornerPermP2UDPermPruneTable, cornerPermMoveTable, P2UDPermMoveTable, 24, true);
     }
 
-    public static int[] solveCube(CubieCube cube) {
+    public static int[] solveCube(CubieCube cube, double solveSeconds) {
         p1Solves.clear();
 
         int[] state = new int[]{cube.getCornerOriCoord(), cube.getEdgeOriCoord(), cube.getUDSliceCoord()};
         byte bound = (byte) Math.max(cornerOriUDSlicePruneTable[state[0] * 495 + state[2]], edgeOriUDSlicePruneTable[state[1] * 495 + state[2]]);
 
-        int recursionLimit = 12;
+        int recursionLimit = 18;
+        long start = System.currentTimeMillis();
+        long end = start + (long)(solveSeconds*1000);
 
         int shortestPath = Integer.MAX_VALUE;
         int[] outMoves = null;
 
         while (true) {
             int[] moves = new int[20];
-            int result = P1ida(state, 0, bound, -1, moves);
+            int result = P1ida(state, 0, bound, -1, moves, end);
 
-            while (!p1Solves.isEmpty()) {
+            while (!p1Solves.isEmpty() && System.currentTimeMillis() < end) {
                 int[] p1Solve = p1Solves.poll();
                 CubieCube p2Cube = CubieCube.copyCube(cube);
                 for (int m : p1Solve) {
@@ -142,16 +144,18 @@ public class KociembaSolver {
                     System.arraycopy(p2Solve, 1, outMoves, p1Solve.length, p2Solve[0]);
                 }
             }
-            if (result == recursionLimit) {
+            if (result == recursionLimit || System.currentTimeMillis() >= end) {
                 break;
             }
             bound = (byte) result;
         }
         System.out.println("Solve length: " + shortestPath + " moves");
+        System.err.println("Solve time:" + (double)(System.currentTimeMillis() - start)/1000.0000);
         return outMoves;
     }
 
-    private static int P1ida(int[] state, int depth, int bound, int lastMove, int[] moves) {
+    private static int P1ida(int[] state, int depth, int bound, int lastMove, int[] moves, long endTime) {
+        if (System.currentTimeMillis() >= endTime) return Integer.MAX_VALUE;
         byte heuristic = (byte) Math.max(cornerOriUDSlicePruneTable[state[0] * 495 + state[2]], edgeOriUDSlicePruneTable[state[1] * 495 + state[2]]);
 
         if (state[0] == 0 && state[1] == 0 && state[2] == 0) {
@@ -185,7 +189,7 @@ public class KociembaSolver {
             }
 
             moves[depth] = m;
-            int result = P1ida(nextState, depth + 1, bound, m, moves);
+            int result = P1ida(nextState, depth + 1, bound, m, moves, endTime);
             if (result == 0) {
                 return 0;
             }

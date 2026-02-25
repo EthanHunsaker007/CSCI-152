@@ -294,7 +294,7 @@ public class RubiksCube extends JPanel implements ActionListener {
 
         JButton solveBtn = new JButton("Solve");
         solveBtn.addActionListener(e -> {
-            int[] solveMoves = KociembaSolver.solveCube(cube);
+            int[] solveMoves = KociembaSolver.solveCube(cube, 1);
             AtomicInteger m = new AtomicInteger(0);
             Runnable moveIncrement = () -> {
                 if (m.get() > solveMoves.length) {

@@ -60,9 +60,6 @@ public class App {
         double sum = 0;
 
         for (int i = 0; i < solves; i++) {
-            if (i % 10 == 0) {
-                System.out.println("Test progress: " + i + "%");
-            }
             CubieCube cube = new CubieCube();
             cube.randomizeCube(100);
             int[] solve = KociembaSolver.solveCube(cube, solveSeconds);

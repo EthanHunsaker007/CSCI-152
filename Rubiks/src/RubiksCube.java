@@ -250,41 +250,17 @@ public class RubiksCube extends JPanel implements ActionListener {
         JPanel buttonPanel = new JPanel();
         buttonPanel.setBackground(new Color(40, 40, 40));
 
-        JButton UBtn = new JButton("U");
-        UBtn.addActionListener(e -> {
-            cube.move(0);
-            Cube.setCubeColors(cube.as1DFaceletArray());
-        });
+        String[] buttonLabels = new String[]{"U","D","L","R","F","B"};
 
-        JButton DBtn = new JButton("D");
-        DBtn.addActionListener(e -> {
-            cube.move(1);
-            Cube.setCubeColors(cube.as1DFaceletArray());
-        });
-
-        JButton RBtn = new JButton("R");
-        RBtn.addActionListener(e -> {
-            cube.move(3);
-            Cube.setCubeColors(cube.as1DFaceletArray());
-        });
-
-        JButton LBtn = new JButton("L");
-        LBtn.addActionListener(e -> {
-            cube.move(2);
-            Cube.setCubeColors(cube.as1DFaceletArray());
-        });
-
-        JButton FBtn = new JButton("F");
-        FBtn.addActionListener(e -> {
-            cube.move(4);
-            Cube.setCubeColors(cube.as1DFaceletArray());
-        });
-
-        JButton BBtn = new JButton("B");
-        BBtn.addActionListener(e -> {
-            cube.move(5);
-            Cube.setCubeColors(cube.as1DFaceletArray());
-        });
+        for (int i = 0; i < 6; i++) {
+            final int index = i;
+            JButton moveButton = new JButton(buttonLabels[i]);
+            moveButton.addActionListener(e -> {
+                cube.move(index);
+                Cube.setCubeColors(cube.as1DFaceletArray());
+            });
+            buttonPanel.add(moveButton);
+        }
 
         JButton scrambleBtn = new JButton("Scramble");
         scrambleBtn.addActionListener(e -> {
@@ -307,12 +283,6 @@ public class RubiksCube extends JPanel implements ActionListener {
             scheduler.scheduleAtFixedRate(moveIncrement, 0, 500, MILLISECONDS);
         });
 
-        buttonPanel.add(UBtn);
-        buttonPanel.add(DBtn);
-        buttonPanel.add(LBtn);
-        buttonPanel.add(RBtn);
-        buttonPanel.add(FBtn);
-        buttonPanel.add(BBtn);
         buttonPanel.add(scrambleBtn);
         buttonPanel.add(solveBtn);
 

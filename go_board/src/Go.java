@@ -25,6 +25,8 @@ public class Go {
     private int pieceSize;
     private int turnIndicatorSize;
     private boolean blackTurn = true;
+    private boolean passed = false;
+    private boolean gameOver = false;
     private int blackScore = 0;
     private int whiteScore = 0;
     private boolean uiHorizontal = true;
@@ -105,6 +107,18 @@ public class Go {
                 g2.fill(whiteShape);
                 g2.setColor(Color.BLACK);
                 g2.fill(blackShape);
+
+                if (gameOver) {
+                    Font endFont = new Font("Times New Roman", Font.BOLD, gap * 2);
+                    String gameEnd = "Game Over";
+                    GlyphVector endVector = endFont.createGlyphVector(frc, gameEnd);
+                    Shape endShape = endVector.getOutline(sideMargins + (boardSize - 1) / 2  * gap - (int)endVector.getVisualBounds().getWidth() / 2, topBottomMargins + (boardSize - 1) / 2 * gap + (int)endVector.getVisualBounds().getHeight() / 2);
+                    g2.setColor(Color.BLACK);
+                    g2.setStroke(new BasicStroke(6f));
+                    g2.draw(endShape);
+                    g2.setColor(Color.WHITE);
+                    g2.fill(endShape);
+                }
             }
         });
 
@@ -136,6 +150,8 @@ public class Go {
         frame.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
+                if (gameOver) return;
+
                 // Adjust for window header which are called insets
                 int y = Math.round((float) (e.getX() - sideMargins) / gap);
                 int x = Math.round((float) (e.getY() - topBottomMargins - frame.getInsets().top) / gap);
@@ -147,7 +163,19 @@ public class Go {
                 }
             }
         });
-        
+
+        JButton passButton = new JButton("Pass");
+            passButton.addActionListener(e -> {
+                if (gameOver) return;
+                if (passed == true) {
+                    gameOver = true;
+                }
+                blackTurn = !blackTurn;
+                passed = true;
+                frame.repaint();
+            });
+
+        frame.add(passButton, java.awt.BorderLayout.SOUTH);
         frame.setVisible(true);
     }
 
@@ -171,8 +199,8 @@ public class Go {
                 return false;
             }
 
-            System.out.println("White Score: " + whiteScore);
             collapseGroups(newGroup, neighborGroups);
+            passed = false;
             return true;
         }
         return false;

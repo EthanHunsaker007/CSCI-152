@@ -1,0 +1,1 @@
+public record Piece(boolean black, PiecePosition position) {}

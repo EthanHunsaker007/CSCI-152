@@ -1,0 +1,1 @@
+public record PiecePosition(int x, int y) {}

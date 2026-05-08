@@ -7,7 +7,7 @@
 
 public class App {
     public static void main(String[] args) throws Exception {
-        Board board = new Board(13);
+        Go board = new Go(13);
         board.showUI(1000, 1000);
     }
 }
